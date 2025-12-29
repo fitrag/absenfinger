@@ -192,44 +192,90 @@ class AttendanceController extends Controller
     /**
      * Export attendance to CSV.
      */
+    /**
+     * Export attendance to Excel.
+     */
     public function export(Request $request)
     {
         $date = $request->get('date', now()->toDateString());
+        $kelasId = $request->get('kelas_id');
 
-        $attendances = Attendance::with('student')
-            ->whereDate('checktime', $date)
-            ->orderBy('checktime', 'asc')
-            ->get();
+        // Get All Students (filtered by class if needed)
+        $studentQuery = Student::with('kelas')->where('is_active', true)->orderBy('name');
+        if ($kelasId) {
+            $studentQuery->where('kelas_id', $kelasId);
+        }
+        $students = $studentQuery->get();
 
-        $filename = "absensi_{$date}.csv";
+        // Get Attendance Data for the date
+        $allAttendances = Attendance::whereDate('checktime', $date)->get()->groupBy('nis');
 
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        $kelasName = 'Semua Kelas';
+        if ($kelasId) {
+            $kelas = Kelas::find($kelasId);
+            if ($kelas) {
+                $kelasName = $kelas->nm_kls;
+            }
+        }
+
+        $data = [
+            ['Data Absensi Siswa'],
+            ['Tanggal', Carbon::parse($date)->format('d F Y')],
+            ['Kelas', $kelasName],
+            [],
+            ['No', 'NIS', 'Nama', 'Kelas', 'Jam Masuk', 'Jam Pulang', 'Status']
         ];
 
-        $callback = function () use ($attendances) {
-            $file = fopen('php://output', 'w');
+        foreach ($students as $index => $student) {
+            $records = $allAttendances->get($student->nis, collect([]));
 
-            // Header
-            fputcsv($file, ['No', 'NIS', 'Nama', 'Kelas', 'Waktu', 'Tipe']);
+            // Logic similar to IndexController to determine status
+            $checkIn = $records->where('checktype', 0)->sortBy('checktime')->first();
+            $checkOut = $records->where('checktype', 1)->sortByDesc('checktime')->first();
+            $special = $records->whereIn('checktype', [2, 3, 4])->first(); // 2=Sakit, 3=Izin, 4=Alpha
 
-            // Data
-            foreach ($attendances as $index => $attendance) {
-                fputcsv($file, [
-                    $index + 1,
-                    $attendance->nis,
-                    $attendance->student->name ?? '-',
-                    $attendance->student->kelas->nm_kls ?? '-',
-                    $attendance->checktime->format('Y-m-d H:i:s'),
-                    $attendance->checktype == 0 ? 'Masuk' : 'Pulang',
-                ]);
+            $jamMasuk = '-';
+            $jamPulang = '-';
+            $status = 'Tidak Hadir';
+
+            if ($special) {
+                if ($special->checktype == 2)
+                    $status = 'Sakit';
+                elseif ($special->checktype == 3)
+                    $status = 'Izin';
+                elseif ($special->checktype == 4)
+                    $status = 'Alpha';
+            } elseif ($checkIn) {
+                $jamMasuk = $checkIn->checktime->format('H:i:s');
+                $isLate = $checkIn->checktime->format('H:i') > '07:00';
+
+                if ($checkOut) {
+                    $jamPulang = $checkOut->checktime->format('H:i:s');
+                    $status = $isLate ? 'Terlambat' : 'Hadir';
+                } else {
+                    $status = 'Bolos'; // Masuk tapi tidak pulang
+                }
+            } else {
+                // Check if purely Alpha/Absent (already set to default 'Tidak Hadir')
             }
 
-            fclose($file);
-        };
+            $data[] = [
+                $index + 1,
+                $student->nis,
+                $student->name,
+                $student->kelas->nm_kls ?? '-',
+                $jamMasuk,
+                $jamPulang,
+                $status
+            ];
+        }
 
-        return response()->stream($callback, 200, $headers);
+        $filename = "Absensi_" . ($kelasId ? "Kelas_{$kelasName}_" : "") . "{$date}.xlsx";
+
+        // Clean filename
+        $filename = preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $filename);
+
+        return \Shuchkin\SimpleXLSXGen::fromArray($data)->downloadAs($filename);
     }
 
     /**

@@ -35,22 +35,15 @@
                         </svg>
                         Update Ketidakhadiran
                     </button>
-                    <a href="{{ route('admin.attendance.export', ['date' => $date]) }}"
+                    <button @click="showExportModal = true"
                         class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-medium rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all shadow-lg shadow-emerald-500/20">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
-                        Export CSV
-                    </a>
-                    <a href="{{ route('admin.attendance.printPdf', ['date' => $date, 'kelas_id' => request('kelas_id')]) }}"
-                        class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white font-medium rounded-xl hover:from-rose-600 hover:to-pink-600 transition-all shadow-lg shadow-rose-500/20">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                        </svg>
-                        Cetak PDF
-                    </a>
+                        Export Excel
+                    </button>
+
                 </div>
             @endif
         </div>
@@ -96,7 +89,7 @@
         <div class="rounded-xl bg-slate-900/50 border border-slate-800/50 p-3">
             <form action="{{ route('admin.attendance.index') }}" method="GET" class="flex flex-wrap items-center gap-3">
                 <!-- Date -->
-                <input type="date" name="date" value="{{ $date }}"
+                <input type="date" name="date" value="{{ $date }}" onchange="this.form.submit()"
                     class="px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500/50">
 
                 <!-- Kelas -->
@@ -105,7 +98,7 @@
                         {{ $walasKelasInfo->nm_kls }}
                     </div>
                 @else
-                    <select name="kelas_id"
+                    <select name="kelas_id" onchange="this.form.submit()"
                         class="px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500/50">
                         <option value="">Semua Kelas</option>
                         @foreach($kelasList as $kelas)
@@ -532,11 +525,11 @@
                                             </td>
                                             <td class="px-4 py-3 text-center">
                                                 <span class="inline-flex px-2 py-1 rounded-lg text-xs font-medium" :class="{
-                                                                                'bg-purple-500/20 text-purple-300 border border-purple-500/30': student.current_status === 'sakit',
-                                                                                'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30': student.current_status === 'izin',
-                                                                                'bg-red-500/20 text-red-300 border border-red-500/30': student.current_status === 'alpha',
-                                                                                'bg-rose-500/20 text-rose-300 border border-rose-500/30': student.current_status === 'bolos'
-                                                                            }"
+                                                                                                'bg-purple-500/20 text-purple-300 border border-purple-500/30': student.current_status === 'sakit',
+                                                                                                'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30': student.current_status === 'izin',
+                                                                                                'bg-red-500/20 text-red-300 border border-red-500/30': student.current_status === 'alpha',
+                                                                                                'bg-rose-500/20 text-rose-300 border border-rose-500/30': student.current_status === 'bolos'
+                                                                                            }"
                                                     x-text="student.current_status.charAt(0).toUpperCase() + student.current_status.slice(1)"></span>
                                             </td>
                                             <td class="px-4 py-3 text-center">
@@ -575,6 +568,66 @@
             </div>
         </div>
 
+        <!-- Export Excel Modal -->
+        <div x-show="showExportModal" x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            class="fixed inset-0 z-50 flex items-start justify-center p-4 pt-20 bg-black/50 backdrop-blur-sm overflow-y-auto"
+            @click.self="showExportModal = false" style="display: none;">
+
+            <div x-show="showExportModal" x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+                x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 scale-100"
+                x-transition:leave-end="opacity-0 scale-95"
+                class="w-full max-w-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl shadow-2xl border border-slate-700/50">
+
+                <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700/50">
+                    <h3 class="text-lg font-bold text-white">Export Data Absensi</h3>
+                    <button @click="showExportModal = false" class="text-slate-400 hover:text-white transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <form action="{{ route('admin.attendance.export') }}" method="GET" class="p-6 space-y-6">
+                    <div class="space-y-6">
+                        <!-- Tanggal -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">Tanggal</label>
+                            <input type="date" name="date" value="{{ $date }}"
+                                class="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500/50 date-white-icon">
+                        </div>
+
+                        <!-- Kelas -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">Pilih Kelas</label>
+                            <select name="kelas_id"
+                                class="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500/50">
+                                <option value="">Semua Kelas</option>
+                                @foreach($kelasList as $kelas)
+                                    <option value="{{ $kelas->id }}">{{ $kelas->nm_kls }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4 pt-4 border-t border-slate-700/50 mt-4">
+                        <button type="button" @click="showExportModal = false"
+                            class="flex-1 px-4 py-2.5 bg-slate-700 text-white font-medium rounded-xl hover:bg-slate-600 transition-colors">
+                            Batal
+                        </button>
+                        <button type="submit"
+                            class="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-medium rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all shadow-lg shadow-emerald-500/20">
+                            Export Excel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <style>
             .date-white-icon::-webkit-calendar-picker-indicator {
                 filter: invert(1);
@@ -598,6 +651,9 @@
                     updateLoading: false,
                     absentStudents: [],
 
+                    // Export modal
+                    showExportModal: false,
+
                     init() {
                         this.$watch('showAbsenceModal', value => {
                             document.body.classList.toggle('overflow-hidden', value);
@@ -618,6 +674,10 @@
                             }
                         });
                         this.$watch('updateKelasId', value => this.loadAbsentStudents());
+
+                        this.$watch('showExportModal', value => {
+                            document.body.classList.toggle('overflow-hidden', value);
+                        });
                     },
 
                     loadStudents(kelasId) {
