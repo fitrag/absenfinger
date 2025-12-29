@@ -21,6 +21,13 @@ class Attendance extends Model
         'checktype' => 'integer',
     ];
 
+    // Checktype constants
+    const TYPE_MASUK = 0;
+    const TYPE_PULANG = 1;
+    const TYPE_SAKIT = 2;
+    const TYPE_IZIN = 3;
+    const TYPE_ALPHA = 4;
+
     /**
      * Get the student by NIS.
      */
@@ -42,7 +49,7 @@ class Attendance extends Model
      */
     public function scopeCheckIn($query)
     {
-        return $query->where('checktype', 0);
+        return $query->where('checktype', self::TYPE_MASUK);
     }
 
     /**
@@ -50,7 +57,7 @@ class Attendance extends Model
      */
     public function scopeCheckOut($query)
     {
-        return $query->where('checktype', 1);
+        return $query->where('checktype', self::TYPE_PULANG);
     }
 
     /**
@@ -58,7 +65,7 @@ class Attendance extends Model
      */
     public function isCheckIn(): bool
     {
-        return $this->checktype === 0;
+        return $this->checktype === self::TYPE_MASUK;
     }
 
     /**
@@ -66,7 +73,7 @@ class Attendance extends Model
      */
     public function isCheckOut(): bool
     {
-        return $this->checktype === 1;
+        return $this->checktype === self::TYPE_PULANG;
     }
 
     /**
@@ -74,6 +81,13 @@ class Attendance extends Model
      */
     public function getChecktypeLabelAttribute(): string
     {
-        return $this->checktype === 0 ? 'Masuk' : 'Pulang';
+        return match ($this->checktype) {
+            self::TYPE_MASUK => 'Masuk',
+            self::TYPE_PULANG => 'Pulang',
+            self::TYPE_SAKIT => 'Sakit',
+            self::TYPE_IZIN => 'Izin',
+            self::TYPE_ALPHA => 'Alpha',
+            default => 'Unknown',
+        };
     }
 }

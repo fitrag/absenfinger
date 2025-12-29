@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Student extends Model
 {
@@ -13,15 +14,49 @@ class Student extends Model
     protected $fillable = [
         'finger_id',
         'nis',
+        'nisn',
         'name',
-        'class',
-        'major',
+        'tmpt_lhr',
+        'tgl_lhr',
+        'jen_kel',
+        'agama',
+        'almt_siswa',
+        'no_tlp',
+        'nm_ayah',
+        'kelas_id',
+        'm_jurusan_id',
+        'user_id',
         'is_active',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'tgl_lhr' => 'date',
     ];
+
+    /**
+     * Get the kelas that the student belongs to.
+     */
+    public function kelas(): BelongsTo
+    {
+        return $this->belongsTo(Kelas::class);
+    }
+
+    /**
+     * Get the jurusan that the student belongs to.
+     */
+    public function jurusan(): BelongsTo
+    {
+        return $this->belongsTo(Jurusan::class, 'm_jurusan_id');
+    }
+
+    /**
+     * Get the user associated with the student.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(MUser::class, 'user_id');
+    }
 
     /**
      * Get attendance records for the student using NIS as foreign key.
