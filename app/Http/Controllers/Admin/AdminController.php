@@ -144,6 +144,28 @@ class AdminController extends Controller
                         ];
                     }
 
+                    // Weekday statistics (Mon-Fri of current week) for this class
+                    $weekdayData = [];
+                    $dayNames = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jum\'at'];
+                    $startOfWeek = now()->startOfWeek(); // Monday
+
+                    for ($i = 0; $i < 5; $i++) {
+                        $date = $startOfWeek->copy()->addDays($i);
+
+                        $present = Attendance::whereDate('checktime', $date->toDateString())
+                            ->where('checktype', 0)
+                            ->whereIn('nis', $studentNis)
+                            ->distinct('nis')
+                            ->count('nis');
+
+                        $weekdayData[] = [
+                            'day' => $dayNames[$i],
+                            'date' => $date->format('Y-m-d'),
+                            'present' => $present,
+                            'absent' => $totalStudents - $present,
+                        ];
+                    }
+
                     return view('admin.dashboard', compact(
                         'totalStudents',
                         'presentToday',
@@ -151,6 +173,7 @@ class AdminController extends Controller
                         'absentToday',
                         'recentAttendances',
                         'weeklyData',
+                        'weekdayData',
                         'isWaliKelas',
                         'walasData',
                         'kelasInfo',
@@ -194,6 +217,27 @@ class AdminController extends Controller
 
             $weeklyData[] = [
                 'day' => $dayName,
+                'date' => $date->format('Y-m-d'),
+                'present' => $present,
+                'absent' => $totalStudents - $present,
+            ];
+        }
+
+        // Weekday statistics (Mon-Fri of current week)
+        $weekdayData = [];
+        $dayNames = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jum\'at'];
+        $startOfWeek = now()->startOfWeek(); // Monday
+
+        for ($i = 0; $i < 5; $i++) {
+            $date = $startOfWeek->copy()->addDays($i);
+
+            $present = Attendance::whereDate('checktime', $date->toDateString())
+                ->where('checktype', 0)
+                ->distinct('nis')
+                ->count('nis');
+
+            $weekdayData[] = [
+                'day' => $dayNames[$i],
                 'date' => $date->format('Y-m-d'),
                 'present' => $present,
                 'absent' => $totalStudents - $present,
@@ -245,6 +289,7 @@ class AdminController extends Controller
             'absentToday',
             'recentAttendances',
             'weeklyData',
+            'weekdayData',
             'isWaliKelas',
             'walasData',
             'kelasInfo',

@@ -13,47 +13,22 @@ class Sertifikat extends Model
     protected $table = 'sertifikats';
 
     protected $fillable = [
-        'pkl_id',
-        'nomor_sertifikat',
-        'tanggal_terbit',
-        'nilai',
-        'predikat',
-        'file_sertifikat',
-        'keterangan',
-        'created_by',
+        'bgFront',
+        'bgBack',
+        'tgl_mulai',
+        'tgl_selesai',
+        'tgl_cetak',
+        'm_tp_id',
     ];
 
     protected $casts = [
-        'tanggal_terbit' => 'date',
+        'tgl_mulai' => 'date',
+        'tgl_selesai' => 'date',
+        'tgl_cetak' => 'date',
     ];
 
-    /**
-     * Get the PKL record
-     */
-    public function pkl(): BelongsTo
+    public function tahunPelajaran(): BelongsTo
     {
-        return $this->belongsTo(Pkl::class);
-    }
-
-    /**
-     * Get the creator
-     */
-    public function creator(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'created_by');
-    }
-
-    /**
-     * Get predikat badge
-     */
-    public function getPredikatBadgeAttribute(): string
-    {
-        return match ($this->predikat) {
-            'Sangat Baik' => 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-            'Baik' => 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-            'Cukup' => 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-            'Kurang' => 'bg-red-500/20 text-red-400 border-red-500/30',
-            default => 'bg-slate-500/20 text-slate-400 border-slate-500/30',
-        };
+        return $this->belongsTo(TahunPelajaran::class, 'm_tp_id');
     }
 }

@@ -73,10 +73,9 @@
                             x-data="{ userDropdown: false }">
                             @php
                                 $headerUserName = session('user_name', 'User');
-                                $headerUserRoles = session('user_roles', []);
+                                $headerUserLevel = session('user_level', 'User');
                                 $headerUserFoto = session('user_foto');
                                 $headerUserInitial = strtoupper(substr($headerUserName, 0, 1)) . strtoupper(substr(explode(' ', $headerUserName)[1] ?? '', 0, 1));
-                                $headerRoleLabel = !empty($headerUserRoles) ? $headerUserRoles[0] : 'User';
                             @endphp
 
                             <!-- Dropdown Trigger -->
@@ -84,7 +83,7 @@
                                 class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
                                 <div class="hidden sm:block text-right">
                                     <p class="text-sm font-medium text-white">{{ $headerUserName }}</p>
-                                    <p class="text-xs text-slate-400">{{ $headerRoleLabel }}</p>
+                                    <p class="text-xs text-slate-400">{{ ucfirst($headerUserLevel) }}</p>
                                 </div>
                                 @if($headerUserFoto)
                                     <img src="{{ asset('storage/' . $headerUserFoto) }}" alt="Profile"

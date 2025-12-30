@@ -128,6 +128,47 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
         Route::get('/students/{kelas_id}', [\App\Http\Controllers\Admin\PklController::class, 'getStudentsByKelas'])->name('students');
         Route::put('/{id}', [\App\Http\Controllers\Admin\PklController::class, 'update'])->name('update');
         Route::delete('/{id}', [\App\Http\Controllers\Admin\PklController::class, 'destroy'])->name('destroy');
+        Route::get('/export-pdf', [\App\Http\Controllers\Admin\PklController::class, 'exportPdf'])->name('exportPdf');
+        Route::get('/export-excel', [\App\Http\Controllers\Admin\PklController::class, 'exportExcel'])->name('exportExcel');
+
+        // Komponen Penilaian Routes
+        Route::prefix('komponen-nilai')->name('komponen-nilai.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\PklKomponenNilaiController::class, 'index'])->name('index');
+
+            // Soft Skill Routes
+            Route::post('/soft', [\App\Http\Controllers\Admin\PklKomponenNilaiController::class, 'storeSoft'])->name('storeSoft');
+            Route::put('/soft/{id}', [\App\Http\Controllers\Admin\PklKomponenNilaiController::class, 'updateSoft'])->name('updateSoft');
+            Route::delete('/soft/{id}', [\App\Http\Controllers\Admin\PklKomponenNilaiController::class, 'destroySoft'])->name('destroySoft');
+
+            // Hard Skill Routes
+            Route::post('/hard', [\App\Http\Controllers\Admin\PklKomponenNilaiController::class, 'storeHard'])->name('storeHard');
+            Route::put('/hard/{id}', [\App\Http\Controllers\Admin\PklKomponenNilaiController::class, 'updateHard'])->name('updateHard');
+            Route::delete('/hard/{id}', [\App\Http\Controllers\Admin\PklKomponenNilaiController::class, 'destroyHard'])->name('destroyHard');
+
+            // Wirausaha Routes
+            Route::post('/wirausaha', [\App\Http\Controllers\Admin\PklKomponenNilaiController::class, 'storeWirausaha'])->name('storeWirausaha');
+            Route::put('/wirausaha/{id}', [\App\Http\Controllers\Admin\PklKomponenNilaiController::class, 'updateWirausaha'])->name('updateWirausaha');
+            Route::delete('/wirausaha/{id}', [\App\Http\Controllers\Admin\PklKomponenNilaiController::class, 'destroyWirausaha'])->name('destroyWirausaha');
+        });
+
+        // Nilai PKL Routes
+        Route::prefix('nilai')->name('nilai.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\PklNilaiController::class, 'index'])->name('index');
+            Route::get('/show/{pklId}/{type}', [\App\Http\Controllers\Admin\PklNilaiController::class, 'show'])->name('show');
+            Route::post('/bulk-update', [\App\Http\Controllers\Admin\PklNilaiController::class, 'bulkUpdate'])->name('bulk_update');
+            Route::post('/', [\App\Http\Controllers\Admin\PklNilaiController::class, 'store'])->name('store');
+            Route::put('/{id}', [\App\Http\Controllers\Admin\PklNilaiController::class, 'update'])->name('update');
+            Route::delete('/{id}', [\App\Http\Controllers\Admin\PklNilaiController::class, 'destroy'])->name('destroy');
+            Route::get('/students/{kelas_id}', [\App\Http\Controllers\Admin\PklNilaiController::class, 'getStudentsByKelas'])->name('students');
+            Route::get('/komponen/{jurusan_id}', [\App\Http\Controllers\Admin\PklNilaiController::class, 'getKomponenByJurusan'])->name('komponen');
+        });
+
+        // Suket PKL Routes
+        Route::prefix('suket')->name('suket.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\PklController::class, 'suket'])->name('index');
+            Route::post('/config', [\App\Http\Controllers\Admin\PklController::class, 'saveSuketConfig'])->name('config');
+            Route::get('/print/{id}', [\App\Http\Controllers\Admin\PklController::class, 'printSuket'])->name('print');
+        });
     });
 
     // Dudi Routes

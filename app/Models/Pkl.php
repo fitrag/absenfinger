@@ -17,6 +17,8 @@ class Pkl extends Model
         'student_id',
         'dudi_id',
         'pembimbing_sekolah_id',
+        'pembimbing_industri',
+        'pimpinan',
         'tp_id',
         'created_by',
     ];
@@ -64,8 +66,35 @@ class Pkl extends Model
     /**
      * Get the sertifikat
      */
+    /**
+     * Get the sertifikat
+     */
     public function sertifikat(): HasOne
     {
         return $this->hasOne(Sertifikat::class);
+    }
+
+    /**
+     * Get soft skill nilai
+     */
+    public function softNilai()
+    {
+        return $this->hasMany(PklSoftNilai::class, 'student_id', 'student_id');
+    }
+
+    /**
+     * Get hard skill nilai
+     */
+    public function hardNilai()
+    {
+        return $this->hasMany(PklHardNilai::class, 'student_id', 'student_id');
+    }
+
+    /**
+     * Get wirausaha nilai
+     */
+    public function wirausahaNilai()
+    {
+        return $this->hasMany(PklWirausahaNilai::class, 'student_id', 'student_id');
     }
 }
