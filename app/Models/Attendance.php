@@ -14,11 +14,18 @@ class Attendance extends Model
         'nis',
         'checktime',
         'checktype',
+        'dudi_id',
+        'latitude',
+        'longitude',
+        'is_pkl',
     ];
 
     protected $casts = [
         'checktime' => 'datetime',
         'checktype' => 'integer',
+        'is_pkl' => 'boolean',
+        'latitude' => 'decimal:8',
+        'longitude' => 'decimal:8',
     ];
 
     // Checktype constants
@@ -34,6 +41,14 @@ class Attendance extends Model
     public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class, 'nis', 'nis');
+    }
+
+    /**
+     * Get the dudi (for PKL attendance).
+     */
+    public function dudi(): BelongsTo
+    {
+        return $this->belongsTo(Dudi::class);
     }
 
     /**
@@ -58,6 +73,22 @@ class Attendance extends Model
     public function scopeCheckOut($query)
     {
         return $query->where('checktype', self::TYPE_PULANG);
+    }
+
+    /**
+     * Scope for PKL attendance.
+     */
+    public function scopePkl($query)
+    {
+        return $query->where('is_pkl', true);
+    }
+
+    /**
+     * Scope for regular (non-PKL) attendance.
+     */
+    public function scopeRegular($query)
+    {
+        return $query->where('is_pkl', false);
     }
 
     /**

@@ -259,6 +259,35 @@
                             <input type="text" name="bidang_usaha"
                                 class="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white text-sm">
                         </div>
+                        
+                        <!-- Location Section -->
+                        <div class="pt-4 border-t border-slate-700/50">
+                            <h4 class="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                                <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                Lokasi untuk Absensi PKL
+                            </h4>
+                            <div class="grid grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-400 mb-1">Latitude</label>
+                                    <input type="text" name="latitude" placeholder="-6.200000"
+                                        class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-400 mb-1">Longitude</label>
+                                    <input type="text" name="longitude" placeholder="106.816666"
+                                        class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-400 mb-1">Radius (meter)</label>
+                                    <input type="number" name="radius" value="100" min="10" max="1000"
+                                        class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm">
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-2">Koordinat digunakan untuk validasi absensi PKL siswa.</p>
+                        </div>
                     </div>
                     <div class="flex justify-end gap-3">
                         <button type="button" onclick="closeModal('addModal')"
@@ -302,6 +331,35 @@
                             <input type="text" name="bidang_usaha" id="editBidangUsaha"
                                 class="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white text-sm">
                         </div>
+                        
+                        <!-- Location Section -->
+                        <div class="pt-4 border-t border-slate-700/50">
+                            <h4 class="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                                <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                Lokasi untuk Absensi PKL
+                            </h4>
+                            <div class="grid grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-400 mb-1">Latitude</label>
+                                    <input type="text" name="latitude" id="editLatitude" placeholder="-6.200000"
+                                        class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-400 mb-1">Longitude</label>
+                                    <input type="text" name="longitude" id="editLongitude" placeholder="106.816666"
+                                        class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-400 mb-1">Radius (meter)</label>
+                                    <input type="number" name="radius" id="editRadius" value="100" min="10" max="1000"
+                                        class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm">
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-2">Koordinat digunakan untuk validasi absensi PKL siswa.</p>
+                        </div>
                     </div>
                     <div class="flex justify-end gap-3">
                         <button type="button" onclick="closeModal('editModal')"
@@ -327,6 +385,9 @@
             document.getElementById('editAlamat').value = dudi.alamat || '';
             document.getElementById('editTelepon').value = dudi.telepon || '';
             document.getElementById('editBidangUsaha').value = dudi.bidang_usaha || '';
+            document.getElementById('editLatitude').value = dudi.latitude || '';
+            document.getElementById('editLongitude').value = dudi.longitude || '';
+            document.getElementById('editRadius').value = dudi.radius || 100;
             openModal('editModal');
         }
     </script>

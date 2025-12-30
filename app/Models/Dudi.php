@@ -17,6 +17,9 @@ class Dudi extends Model
         'alamat',
         'telepon',
         'bidang_usaha',
+        'latitude',
+        'longitude',
+        'radius',
     ];
 
     /**

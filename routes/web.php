@@ -218,3 +218,11 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
         Route::post('/store-nilai/{id}', [\App\Http\Controllers\Admin\GuruPklController::class, 'storeNilai'])->name('store_nilai');
     });
 });
+
+// Siswa Routes (Protected by siswa middleware)
+Route::prefix('siswa')->name('siswa.')->middleware('siswa')->group(function () {
+    // PKL Routes
+    Route::get('/pkl', [\App\Http\Controllers\Siswa\SiswaPklController::class, 'dashboard'])->name('pkl.dashboard');
+    Route::post('/pkl/check-in', [\App\Http\Controllers\Siswa\SiswaPklController::class, 'checkIn'])->name('pkl.checkIn');
+    Route::post('/pkl/check-out', [\App\Http\Controllers\Siswa\SiswaPklController::class, 'checkOut'])->name('pkl.checkOut');
+});

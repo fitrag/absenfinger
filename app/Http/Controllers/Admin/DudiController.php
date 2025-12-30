@@ -47,9 +47,12 @@ class DudiController extends Controller
             'alamat' => 'nullable|string',
             'telepon' => 'nullable|string|max:20',
             'bidang_usaha' => 'nullable|string|max:255',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
+            'radius' => 'nullable|integer|min:10|max:1000',
         ]);
 
-        Dudi::create($request->only(['nama', 'alamat', 'telepon', 'bidang_usaha']));
+        Dudi::create($request->only(['nama', 'alamat', 'telepon', 'bidang_usaha', 'latitude', 'longitude', 'radius']));
 
         return redirect()->route('admin.dudi.index')->with('success', 'Data Dudi berhasil ditambahkan');
     }
@@ -64,10 +67,13 @@ class DudiController extends Controller
             'alamat' => 'nullable|string',
             'telepon' => 'nullable|string|max:20',
             'bidang_usaha' => 'nullable|string|max:255',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
+            'radius' => 'nullable|integer|min:10|max:1000',
         ]);
 
         $dudi = Dudi::findOrFail($id);
-        $dudi->update($request->only(['nama', 'alamat', 'telepon', 'bidang_usaha']));
+        $dudi->update($request->only(['nama', 'alamat', 'telepon', 'bidang_usaha', 'latitude', 'longitude', 'radius']));
 
         return redirect()->route('admin.dudi.index')->with('success', 'Data Dudi berhasil diperbarui');
     }
