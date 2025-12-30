@@ -217,6 +217,13 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
         Route::get('/input-nilai/{id}', [\App\Http\Controllers\Admin\GuruPklController::class, 'inputNilai'])->name('input_nilai');
         Route::post('/store-nilai/{id}', [\App\Http\Controllers\Admin\GuruPklController::class, 'storeNilai'])->name('store_nilai');
     });
+
+    // Siswa PKL Routes (For student level accessing via admin panel)
+    Route::prefix('siswa/pkl')->name('siswa.pkl.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\SiswaPklController::class, 'dashboard'])->name('dashboard');
+        Route::post('/check-in', [\App\Http\Controllers\Admin\SiswaPklController::class, 'checkIn'])->name('checkIn');
+        Route::post('/check-out', [\App\Http\Controllers\Admin\SiswaPklController::class, 'checkOut'])->name('checkOut');
+    });
 });
 
 // Siswa Routes (Protected by siswa middleware)

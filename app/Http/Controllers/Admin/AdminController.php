@@ -7,6 +7,7 @@ use App\Models\Attendance;
 use App\Models\Student;
 use App\Models\Guru;
 use App\Models\Walas;
+use App\Models\Pkl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Carbon\Carbon;
@@ -22,10 +23,21 @@ class AdminController extends Controller
         $userId = Session::get('user_id');
         $userRoles = session('user_roles', []);
 
+        $userLevel = Session::get('user_level');
+        $isStudent = $userLevel === 'siswa';
+        $isPkl = false;
+
         // Check if user is Wali Kelas
         $isWaliKelas = in_array('Wali Kelas', $userRoles);
         $walasData = null;
         $kelasInfo = null;
+
+        if ($isStudent) {
+            $student = Student::where('user_id', $userId)->first();
+            if ($student) {
+                $isPkl = Pkl::where('student_id', $student->id)->exists();
+            }
+        }
 
         if ($isWaliKelas && $userId) {
             // Get guru data based on user_id
@@ -295,7 +307,9 @@ class AdminController extends Controller
             'kelasInfo',
             'siswaTerlambat',
             'pelanggaranSiswa',
-            'siswaKonseling'
+            'siswaKonseling',
+            'isStudent',
+            'isPkl'
         ));
     }
 }

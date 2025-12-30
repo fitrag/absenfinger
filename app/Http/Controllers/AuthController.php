@@ -60,21 +60,7 @@ class AuthController extends Controller
         Session::put('user_roles', $user->roles->pluck('nama_role')->toArray());
 
         // Redirect based on user level
-        if ($user->level === 'siswa') {
-            // Check if student is registered in PKL
-            $student = Student::where('user_id', $user->id)->first();
-            
-            if ($student) {
-                $pkl = Pkl::where('student_id', $student->id)->first();
-                
-                if ($pkl) {
-                    return redirect()->route('siswa.pkl.dashboard')->with('success', 'Selamat datang, ' . $user->name);
-                }
-            }
-            
-            // Siswa not registered in PKL, redirect to admin dashboard
-            return redirect()->route('admin.dashboard')->with('info', 'Anda belum terdaftar dalam program PKL');
-        }
+
 
         // Redirect to admin dashboard for other levels
         return redirect()->route('admin.dashboard')->with('success', 'Selamat datang, ' . $user->name);
