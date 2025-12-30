@@ -210,4 +210,11 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
         Route::put('/{id}', [\App\Http\Controllers\Admin\GuruNilaiHarianController::class, 'update'])->name('update');
         Route::delete('/{id}', [\App\Http\Controllers\Admin\GuruNilaiHarianController::class, 'destroy'])->name('destroy');
     });
+
+    // Guru PKL Routes (For Role PKL)
+    Route::prefix('guru/pkl')->name('guru.pkl.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\GuruPklController::class, 'index'])->name('index');
+        Route::get('/input-nilai/{id}', [\App\Http\Controllers\Admin\GuruPklController::class, 'inputNilai'])->name('input_nilai');
+        Route::post('/store-nilai/{id}', [\App\Http\Controllers\Admin\GuruPklController::class, 'storeNilai'])->name('store_nilai');
+    });
 });

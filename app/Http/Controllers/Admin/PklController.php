@@ -9,6 +9,8 @@ use App\Models\Student;
 use App\Models\Guru;
 use App\Models\Kelas;
 use App\Models\TahunPelajaran;
+use App\Models\Role;
+use App\Models\MUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 
@@ -160,6 +162,14 @@ class PklController extends Controller
             'tp_id' => 'required|exists:m_tp,id',
         ]);
 
+        // Assign PKL Role to Pembimbing Sekolah if not present
+        if ($request->pembimbing_sekolah_id) {
+            $guru = Guru::find($request->pembimbing_sekolah_id);
+            if ($guru && $guru->user_id) {
+                $this->assignPklRole($guru->user_id);
+            }
+        }
+
         $created = 0;
         foreach ($request->student_ids as $studentId) {
             // Check if student already has PKL in this tahun pelajaran
@@ -204,6 +214,14 @@ class PklController extends Controller
             'tp_id' => 'required|exists:m_tp,id',
         ]);
 
+        // Assign PKL Role to Pembimbing Sekolah if not present
+        if ($request->pembimbing_sekolah_id) {
+            $guru = Guru::find($request->pembimbing_sekolah_id);
+            if ($guru && $guru->user_id) {
+                $this->assignPklRole($guru->user_id);
+            }
+        }
+
         $pkl = Pkl::findOrFail($id);
         $pkl->update($request->only([
             'student_id',
@@ -215,6 +233,31 @@ class PklController extends Controller
         ]));
 
         return redirect()->route('admin.pkl.index')->with('success', 'Data PKL berhasil diperbarui');
+    }
+
+    /**
+     * Helper to assign PKL role to user if not exists
+     */
+    private function assignPklRole($userId)
+    {
+        $pklRole = Role::where('nama_role', 'PKL')->first();
+
+        // Setup Role PKL if it doesn't exist (safety check)
+        if (!$pklRole) {
+            $pklRole = Role::create([
+                'nama_role' => 'PKL',
+                'keterangan' => 'Role untuk Pembimbing PKL',
+                'is_active' => true
+            ]);
+        }
+
+        $user = MUser::find($userId);
+        if ($user) {
+            // Check if user already has the role
+            if (!$user->roles()->where('role_id', $pklRole->id)->exists()) {
+                $user->roles()->attach($pklRole->id);
+            }
+        }
     }
 
     /**

@@ -64,7 +64,7 @@
                         class="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white text-sm placeholder:text-slate-500">
                 </div>
                 <!-- Kelas Filter -->
-                <select name="kelas_id"
+                <select name="kelas_id" onchange="this.form.submit()"
                     class="px-4 py-2.5 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white text-sm min-w-[140px]">
                     <option value="">Semua Kelas</option>
                     @foreach ($kelasList as $kelas)
@@ -74,7 +74,7 @@
                     @endforeach
                 </select>
                 <!-- DUDI Filter -->
-                <select name="dudi_id"
+                <select name="dudi_id" onchange="this.form.submit()"
                     class="px-4 py-2.5 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white text-sm min-w-[140px]">
                     <option value="">Semua DUDI</option>
                     @foreach ($dudiList as $dudi)
@@ -84,7 +84,7 @@
                     @endforeach
                 </select>
                 <!-- Per Page -->
-                <select name="per_page"
+                <select name="per_page" onchange="this.form.submit()"
                     class="px-4 py-2.5 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white text-sm">
                     <option value="10" {{ $perPage == 10 ? 'selected' : '' }}>10</option>
                     <option value="25" {{ $perPage == 25 ? 'selected' : '' }}>25</option>
@@ -101,101 +101,121 @@
             </form>
         </div>
 
-        <!-- Data Table -->
-        <div class="rounded-xl bg-slate-800/50 border border-amber-500/30 overflow-hidden">
-            <div class="flex items-center gap-3 p-4 border-b border-slate-700/50 bg-amber-500/5">
-                <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <h3 class="text-lg font-semibold text-amber-400">Daftar Siswa PKL</h3>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead>
-                        <tr class="border-b border-slate-700/50">
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase w-12">No</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Siswa</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Kelas</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">DUDI</th>
-                            <th class="px-4 py-3 text-center text-xs font-semibold text-slate-400 uppercase w-28">Nilai
-                                Akhir</th>
-                            <th class="px-4 py-3 text-center text-xs font-semibold text-slate-400 uppercase w-28">Predikat
-                            </th>
-                            <th class="px-4 py-3 text-center text-xs font-semibold text-slate-400 uppercase w-28">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-700/50">
-                        @forelse($pklList as $index => $pkl)
-                            @php
-                                $avgSoft = $pkl->softNilai->avg('nilai') ?? 0;
-                                $avgHard = $pkl->hardNilai->avg('nilai') ?? 0;
-                                $avgWirausaha = $pkl->wirausahaNilai->avg('nilai') ?? 0;
-                                $finalGrade = ($avgSoft * 0.40) + ($avgHard * 0.50) + ($avgWirausaha * 0.10);
+        <!-- Data Table (Grouped by DUDI) -->
+        <div class="space-y-6">
+            @php
+                $groupedPkls = $pklList->groupBy(function($item) {
+                    return $item->dudi->nama;
+                });
+            @endphp
 
-                                if ($finalGrade >= 90) {
-                                    $predikat = 'Amat Baik';
-                                    $predikatColor = 'bg-emerald-500/20 text-emerald-400';
-                                } elseif ($finalGrade >= 80) {
-                                    $predikat = 'Baik';
-                                    $predikatColor = 'bg-blue-500/20 text-blue-400';
-                                } elseif ($finalGrade >= 70) {
-                                    $predikat = 'Cukup';
-                                    $predikatColor = 'bg-yellow-500/20 text-yellow-400';
-                                } elseif ($finalGrade >= 60) {
-                                    $predikat = 'Kurang';
-                                    $predikatColor = 'bg-orange-500/20 text-orange-400';
-                                } else {
-                                    $predikat = 'Sangat Kurang';
-                                    $predikatColor = 'bg-red-500/20 text-red-400';
-                                }
-                            @endphp
-                            <tr class="hover:bg-slate-800/30 transition-colors">
-                                <td class="px-4 py-3 text-sm text-slate-400">{{ $loop->iteration }}</td>
-                                <td class="px-4 py-3">
-                                    <p class="text-sm font-medium text-white">{{ $pkl->student->name ?? '-' }}</p>
-                                    <p class="text-xs text-slate-400">{{ $pkl->student->nis ?? '-' }}</p>
-                                </td>
-                                <td class="px-4 py-3 text-sm text-slate-300">{{ $pkl->student->kelas->nm_kls ?? '-' }}</td>
-                                <td class="px-4 py-3">
-                                    <p class="text-sm text-slate-300">{{ $pkl->dudi->nama ?? '-' }}</p>
-                                </td>
-                                <td class="px-4 py-3 text-center">
-                                    <span
-                                        class="inline-flex items-center px-2.5 py-1 rounded-lg text-sm font-semibold
-                                                                                                                                {{ $finalGrade >= 80 ? 'bg-emerald-500/20 text-emerald-400' : ($finalGrade >= 60 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400') }}">
-                                        {{ number_format($finalGrade, 1) }}
-                                    </span>
-                                </td>
-                                <td class="px-4 py-3 text-center">
-                                    <span
-                                        class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium {{ $predikatColor }}">
-                                        {{ $predikat }}
-                                    </span>
-                                </td>
-                                <td class="px-4 py-3 text-center">
-                                    <a href="{{ route('admin.pkl.suket.print', $pkl->id) }}" target="_blank"
-                                        class="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 rounded-lg text-xs font-medium transition-colors cursor-pointer border border-amber-500/30">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                        </svg>
-                                        Cetak
-                                    </a>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="7" class="px-4 py-8 text-center text-slate-400">
-                                    Belum ada data siswa PKL dengan nilai
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+            @forelse($groupedPkls as $dudiName => $pkls)
+                <div class="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-2xl overflow-hidden">
+                    <!-- Group Header -->
+                    <div class="px-6 py-4 bg-slate-800/50 border-b border-slate-700/50 flex items-center gap-3">
+                        <div class="p-2 bg-amber-500/10 rounded-lg">
+                            <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-bold text-white">{{ $dudiName }}</h3>
+                        <span class="px-2.5 py-0.5 rounded-full bg-slate-700 border border-slate-600 text-xs font-medium text-slate-300">
+                            {{ $pkls->count() }} Siswa
+                        </span>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="bg-slate-800/30 border-b border-slate-700/50 text-left">
+                                    <th class="px-6 py-4 text-xs font-semibold text-slate-400 uppercase w-12">No</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-slate-400 uppercase">Siswa</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-slate-400 uppercase">Kelas</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-slate-400 uppercase text-center w-32">Nilai Akhir</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-slate-400 uppercase text-center w-32">Predikat</th>
+                                    <th class="px-6 py-4 text-xs font-semibold text-slate-400 uppercase text-center w-28">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-700/50">
+                                @foreach($pkls as $pkl)
+                                    @php
+                                        $avgSoft = $pkl->softNilai->avg('nilai') ?? 0;
+                                        $avgHard = $pkl->hardNilai->avg('nilai') ?? 0;
+                                        $avgWirausaha = $pkl->wirausahaNilai->avg('nilai') ?? 0;
+                                        $finalGrade = ($avgSoft * 0.40) + ($avgHard * 0.50) + ($avgWirausaha * 0.10);
+
+                                        if ($finalGrade >= 90) {
+                                            $predikat = 'Amat Baik';
+                                            $predikatColor = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/20';
+                                        } elseif ($finalGrade >= 80) {
+                                            $predikat = 'Baik';
+                                            $predikatColor = 'bg-blue-500/20 text-blue-400 border-blue-500/20';
+                                        } elseif ($finalGrade >= 70) {
+                                            $predikat = 'Cukup';
+                                            $predikatColor = 'bg-yellow-500/20 text-yellow-400 border-yellow-500/20';
+                                        } elseif ($finalGrade >= 60) {
+                                            $predikat = 'Kurang';
+                                            $predikatColor = 'bg-orange-500/20 text-orange-400 border-orange-500/20';
+                                        } else {
+                                            $predikat = 'Sangat Kurang';
+                                            $predikatColor = 'bg-red-500/20 text-red-400 border-red-500/20';
+                                        }
+                                    @endphp
+                                    <tr class="hover:bg-slate-800/30 transition-colors">
+                                        <td class="px-6 py-4 text-sm text-slate-500">{{ $loop->iteration }}</td>
+                                        <td class="px-6 py-4">
+                                            <div>
+                                                <p class="text-sm font-medium text-white">{{ $pkl->student->name ?? '-' }}</p>
+                                                <p class="text-xs text-slate-400">{{ $pkl->student->nis ?? '-' }}</p>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <span class="px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-xs font-medium text-slate-300">
+                                                {{ $pkl->student->kelas->nm_kls ?? '-' }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 text-center">
+                                            <span class="text-sm font-bold {{ $finalGrade >= 70 ? 'text-emerald-400' : 'text-red-400' }}">
+                                                {{ number_format($finalGrade, 1) }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 text-center">
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border {{ $predikatColor }}">
+                                                {{ $predikat }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 text-center">
+                                            <a href="{{ route('admin.pkl.suket.print', $pkl->id) }}" target="_blank"
+                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 rounded-lg text-xs font-medium transition-colors border border-amber-500/20">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                                </svg>
+                                                Cetak
+                                            </a>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @empty
+                <div class="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-2xl p-12 text-center">
+                    <div class="flex flex-col items-center justify-center">
+                        <div class="w-16 h-16 rounded-full bg-slate-800/50 flex items-center justify-center mb-4">
+                            <svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-medium text-white mb-1">Belum ada data</h3>
+                        <p class="text-slate-400">Belum ada siswa PKL yang memiliki nilai lengkap.</p>
+                    </div>
+                </div>
+            @endforelse
+
             @if($pklList instanceof \Illuminate\Pagination\LengthAwarePaginator)
-                <div class="px-4 py-3 border-t border-slate-700/50">
+                <div class="mt-6">
                     {{ $pklList->appends(request()->all())->links() }}
                 </div>
             @endif
