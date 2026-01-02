@@ -197,4 +197,65 @@ class GuruPklController extends Controller
 
         return redirect()->route('admin.guru.pkl.index')->with('success', 'Nilai berhasil disimpan.');
     }
+
+    /**
+     * Display DUDI list for setting location
+     */
+    public function setLokasi()
+    {
+        $userId = Session::get('user_id');
+        $userLevel = Session::get('user_level');
+        $userRoles = Session::get('user_roles', []);
+
+        // Ensure user has access (either level guru or role PKL)
+        if ($userLevel !== 'guru' && !in_array('PKL', $userRoles)) {
+            return redirect()->route('admin.dashboard')->with('error', 'Akses ditolak.');
+        }
+
+        // Get the associated guru
+        $guru = Guru::where('user_id', $userId)->first();
+
+        if (!$guru) {
+            return redirect()->route('admin.dashboard')->with('error', 'Data guru tidak ditemukan untuk akun ini.');
+        }
+
+        // Get DUDI list (only those associated with PKL students guided by this teacher)
+        $dudiList = \App\Models\Dudi::whereHas('pkls', function ($q) use ($guru) {
+            $q->where('pembimbing_sekolah_id', $guru->id);
+        })->orderBy('nama')->get();
+
+        return view('admin.guru.pkl.set_lokasi', compact('dudiList', 'guru'));
+    }
+
+    /**
+     * Update DUDI location
+     */
+    public function updateLokasi(Request $request, $id)
+    {
+        $userId = Session::get('user_id');
+        $guru = Guru::where('user_id', $userId)->first();
+
+        if (!$guru) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
+        // Verify this DUDI is associated with this guru
+        $dudi = \App\Models\Dudi::whereHas('pkls', function ($q) use ($guru) {
+            $q->where('pembimbing_sekolah_id', $guru->id);
+        })->findOrFail($id);
+
+        $request->validate([
+            'latitude' => 'required|numeric|between:-90,90',
+            'longitude' => 'required|numeric|between:-180,180',
+            'radius' => 'required|integer|min:10|max:1000',
+        ]);
+
+        $dudi->update([
+            'latitude' => $request->latitude,
+            'longitude' => $request->longitude,
+            'radius' => $request->radius,
+        ]);
+
+        return redirect()->route('admin.guru.pkl.set_lokasi')->with('success', "Lokasi {$dudi->nama} berhasil diperbarui.");
+    }
 }

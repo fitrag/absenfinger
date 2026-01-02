@@ -216,6 +216,8 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
         Route::get('/', [\App\Http\Controllers\Admin\GuruPklController::class, 'index'])->name('index');
         Route::get('/input-nilai/{id}', [\App\Http\Controllers\Admin\GuruPklController::class, 'inputNilai'])->name('input_nilai');
         Route::post('/store-nilai/{id}', [\App\Http\Controllers\Admin\GuruPklController::class, 'storeNilai'])->name('store_nilai');
+        Route::get('/set-lokasi', [\App\Http\Controllers\Admin\GuruPklController::class, 'setLokasi'])->name('set_lokasi');
+        Route::put('/update-lokasi/{id}', [\App\Http\Controllers\Admin\GuruPklController::class, 'updateLokasi'])->name('update_lokasi');
     });
 
     // Siswa PKL Routes (For student level accessing via admin panel)
