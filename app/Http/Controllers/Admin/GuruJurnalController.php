@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Guru;
 use App\Models\GuruJurnal;
 use App\Models\Kelas;
+use App\Models\KelasAjar;
 use App\Models\Mapel;
 use App\Models\MUser;
 use App\Models\TahunPelajaran;
@@ -42,8 +43,6 @@ class GuruJurnalController extends Controller
         $user = MUser::find($userId);
         $guru = Guru::where('user_id', $userId)->first();
 
-        // Get dropdowns data
-        $kelasList = Kelas::orderBy('nm_kls')->get();
         $tpList = TahunPelajaran::orderBy('nm_tp', 'desc')->get();
         $activeTp = TahunPelajaran::active()->first();
 
@@ -57,10 +56,19 @@ class GuruJurnalController extends Controller
             $jurnals = collect([]);
             $groupedJurnals = collect([]);
             $mapelList = collect([]);
+            $kelasList = collect([]);
             $kelasId = null;
+            $usedKelasIds = [];
             return view('admin.guru.jurnal.index', compact('jurnals', 'groupedJurnals', 'kelasList', 'mapelList', 'tpList', 'activeTp', 'tpId', 'mapelId', 'kelasId', 'semester', 'usedKelasIds'))
                 ->with('error', 'Akun Anda tidak terhubung dengan data guru. Silakan hubungi administrator.');
         }
+
+        // Get dropdowns data - filter by guru's assigned classes from kelas_ajars
+        $guruKelasIds = KelasAjar::where('guru_id', $guru->id)
+            ->where('is_active', true)
+            ->pluck('kelas_id')
+            ->unique();
+        $kelasList = Kelas::whereIn('id', $guruKelasIds)->orderBy('nm_kls')->get();
 
         // Get mapels based on guru's ajar records
         $mapelIds = \App\Models\GuruAjar::where('guru_id', $guru->id)

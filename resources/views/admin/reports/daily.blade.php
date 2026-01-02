@@ -33,15 +33,18 @@
 
         <!-- Filters -->
         <div class="rounded-xl bg-slate-900/50 border border-slate-800/50 p-4 print:hidden">
-            <form action="{{ route('admin.reports.daily') }}" method="GET" class="flex flex-wrap items-center gap-4">
+            <form id="filterForm" action="{{ route('admin.reports.daily') }}" method="GET"
+                class="flex flex-wrap items-center gap-4">
                 <div>
                     <label class="block text-xs text-slate-400 mb-1">Dari Tanggal</label>
                     <input type="date" name="start_date" value="{{ $startDate }}"
+                        onchange="document.getElementById('filterForm').submit()"
                         class="px-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500/50">
                 </div>
                 <div>
                     <label class="block text-xs text-slate-400 mb-1">Sampai Tanggal</label>
                     <input type="date" name="end_date" value="{{ $endDate }}"
+                        onchange="document.getElementById('filterForm').submit()"
                         class="px-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500/50">
                 </div>
                 <div>
@@ -52,9 +55,9 @@
                             {{ $walasKelasInfo->nm_kls }}
                         </div>
                     @else
-                        <select name="kelas_id"
+                        <select name="kelas_id" onchange="document.getElementById('filterForm').submit()"
                             class="px-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500/50">
-                            <option value="">Semua Kelas</option>
+                            <option value="">-</option>
                             @foreach($kelasList as $kelas)
                                 <option value="{{ $kelas->id }}" {{ $kelasId == $kelas->id ? 'selected' : '' }}>
                                     {{ $kelas->nm_kls }}

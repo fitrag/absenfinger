@@ -43,8 +43,11 @@ class KonselingController extends Controller
             });
         }
 
-        $konseling = $query->orderBy('tanggal', 'desc')
-            ->orderBy('created_at', 'desc')
+        $konseling = $query->join('students', 'pds_konselings.student_id', '=', 'students.id')
+            ->orderBy('students.name', 'asc')
+            ->orderBy('pds_konselings.tanggal', 'desc')
+            ->orderBy('pds_konselings.created_at', 'desc')
+            ->select('pds_konselings.*')
             ->paginate(15)
             ->withQueryString();
 
@@ -169,5 +172,20 @@ class KonselingController extends Controller
         });
 
         return response()->json($students);
+    }
+
+    /**
+     * Print konseling by student.
+     */
+    public function printByStudent(Student $student)
+    {
+        $konselings = PdsKonseling::with('creator')
+            ->where('student_id', $student->id)
+            ->orderBy('tanggal', 'desc')
+            ->get();
+
+        $settings = \App\Models\Setting::getAllSettings();
+
+        return view('admin.kesiswaan.konseling.print', compact('student', 'konselings', 'settings'));
     }
 }

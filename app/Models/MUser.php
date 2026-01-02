@@ -39,4 +39,12 @@ class MUser extends Model
     {
         return $this->belongsToMany(Role::class, 'user_role', 'user_id', 'role_id')->withTimestamps();
     }
+
+    /**
+     * Get the student associated with the user.
+     */
+    public function student()
+    {
+        return $this->hasOne(Student::class, 'user_id');
+    }
 }

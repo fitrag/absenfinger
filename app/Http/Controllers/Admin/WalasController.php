@@ -17,8 +17,14 @@ class WalasController extends Controller
     public function index(Request $request)
     {
         $search = $request->get('search');
+        $selectedTpId = $request->get('tp_id');
 
         $query = Walas::with(['guru', 'kelas', 'tahunPelajaran']);
+
+        // Filter by tahun pelajaran
+        if ($selectedTpId) {
+            $query->where('tp_id', $selectedTpId);
+        }
 
         // Server-side search
         if ($search) {
@@ -57,7 +63,7 @@ class WalasController extends Controller
         // Tahun Pelajaran
         $tahunPelajarans = TahunPelajaran::active()->orderBy('nm_tp', 'desc')->get();
 
-        return view('admin.walas.index', compact('walasData', 'availableGurus', 'availableKelas', 'allGurus', 'allKelas', 'tahunPelajarans'));
+        return view('admin.walas.index', compact('walasData', 'availableGurus', 'availableKelas', 'allGurus', 'allKelas', 'tahunPelajarans', 'selectedTpId'));
     }
 
     /**

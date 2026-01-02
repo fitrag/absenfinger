@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\GuruAjar;
+use App\Models\KelasAjar;
 use App\Models\Guru;
 use App\Models\Mapel;
+use App\Models\Kelas;
+use App\Models\TahunPelajaran;
 use Illuminate\Http\Request;
 
 class GuruAjarController extends Controller
@@ -17,6 +20,9 @@ class GuruAjarController extends Controller
     {
         $search = $request->get('search');
         $status = $request->get('status');
+
+        $activeTp = TahunPelajaran::active()->first();
+        $selectedTpId = $request->get('tp', $activeTp ? $activeTp->id : null);
 
         $query = GuruAjar::with(['guru', 'mapel']);
 
@@ -57,8 +63,30 @@ class GuruAjarController extends Controller
 
         $gurus = Guru::orderBy('nama')->get();
         $mapels = Mapel::active()->orderBy('nm_mapel')->get();
+        $kelasList = Kelas::orderBy('nm_kls')->get();
+        $tpList = TahunPelajaran::orderBy('nm_tp', 'desc')->get();
 
-        return view('admin.guruajar.index', compact('groupedData', 'gurus', 'mapels'));
+        // Get kelas ajar data grouped by guru then by mapel
+        $kelasAjarData = KelasAjar::with(['guru', 'kelas', 'tp', 'mapel'])
+            ->when($selectedTpId, function ($q) use ($selectedTpId) {
+                $q->where('tp_id', $selectedTpId);
+            })
+            ->get()
+            ->groupBy('guru_id')
+            ->map(function ($guruGroup) {
+                return $guruGroup->groupBy('m_mapel_id');
+            });
+
+        return view('admin.guruajar.index', compact(
+            'groupedData',
+            'gurus',
+            'mapels',
+            'kelasList',
+            'tpList',
+            'activeTp',
+            'kelasAjarData',
+            'selectedTpId'
+        ));
     }
 
     /**
@@ -153,5 +181,73 @@ class GuruAjarController extends Controller
 
         return redirect()->route('admin.guruajar.index')
             ->with('success', 'Data guru mengajar berhasil dihapus!');
+    }
+
+    /**
+     * Store kelas ajar for a guru.
+     */
+    public function storeKelas(Request $request)
+    {
+        $request->validate([
+            'guru_id' => 'required|exists:m_gurus,id',
+            'mapel_id' => 'required|exists:m_mapels,id',
+            'kelas' => 'required|array|min:1',
+            'kelas.*' => 'exists:kelas,id',
+            'tp_id' => 'required|exists:m_tp,id',
+        ], [
+            'guru_id.required' => 'Guru wajib dipilih',
+            'mapel_id.required' => 'Mapel wajib dipilih',
+            'kelas.required' => 'Minimal pilih 1 kelas',
+            'kelas.min' => 'Minimal pilih 1 kelas',
+            'tp_id.required' => 'Tahun pelajaran wajib dipilih',
+        ]);
+
+        $guruId = $request->guru_id;
+        $mapelId = $request->mapel_id;
+        $kelasIds = $request->kelas;
+        $tpId = $request->tp_id;
+        $isActive = $request->has('is_active');
+        $added = 0;
+        $skipped = 0;
+
+        foreach ($kelasIds as $kelasId) {
+            $exists = KelasAjar::where('guru_id', $guruId)
+                ->where('kelas_id', $kelasId)
+                ->where('tp_id', $tpId)
+                ->where('m_mapel_id', $mapelId)
+                ->exists();
+            if (!$exists) {
+                KelasAjar::create([
+                    'guru_id' => $guruId,
+                    'kelas_id' => $kelasId,
+                    'tp_id' => $tpId,
+                    'm_mapel_id' => $mapelId,
+                    'is_active' => $isActive,
+                ]);
+                $added++;
+            } else {
+                $skipped++;
+            }
+        }
+
+        $message = "Berhasil menambahkan {$added} kelas ajar.";
+        if ($skipped > 0) {
+            $message .= " {$skipped} data sudah ada sebelumnya.";
+        }
+
+        return redirect()->route('admin.guruajar.index')
+            ->with('success', $message);
+    }
+
+    /**
+     * Remove kelas ajar from storage.
+     */
+    public function destroyKelas($id)
+    {
+        $kelasAjar = KelasAjar::findOrFail($id);
+        $kelasAjar->delete();
+
+        return redirect()->route('admin.guruajar.index')
+            ->with('success', 'Kelas ajar berhasil dihapus!');
     }
 }

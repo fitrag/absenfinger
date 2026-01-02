@@ -7,6 +7,7 @@ use App\Models\Guru;
 use App\Models\GuruNilai;
 use App\Models\GuruNilaiDetail;
 use App\Models\Kelas;
+use App\Models\KelasAjar;
 use App\Models\Mapel;
 use App\Models\MUser;
 use App\Models\TahunPelajaran;
@@ -31,8 +32,7 @@ class GuruNilaiHarianController extends Controller
 
         $guru = Guru::where('user_id', $userId)->first();
 
-        // Dropdowns
-        $kelasList = Kelas::orderBy('nm_kls')->get();
+        // Dropdowns - tpList and activeTp don't depend on guru
         $tpList = TahunPelajaran::orderBy('nm_tp', 'desc')->get();
         $activeTp = TahunPelajaran::active()->first();
 
@@ -40,13 +40,24 @@ class GuruNilaiHarianController extends Controller
         $tpId = $request->get('tp_id', $activeTp ? $activeTp->id : null);
         $mapelId = $request->get('mapel_id');
         $semester = $request->get('semester');
+        $kelasId = $request->get('kelas_id');
         // Search removed as judul is gone
 
         if (!$guru) {
-            return view('admin.guru.nilai.index', compact('kelasList', 'tpList', 'activeTp', 'tpId', 'mapelId', 'semester'))
+            $kelasList = collect([]);
+            $mapelList = collect([]);
+            return view('admin.guru.nilai.index', compact('kelasList', 'tpList', 'activeTp', 'tpId', 'mapelId', 'semester', 'mapelList'))
                 ->with('error', 'Akun Anda tidak terhubung dengan data guru.');
         }
 
+        // Get kelasList from guru's assignments in kelas_ajars
+        $guruKelasIds = KelasAjar::where('guru_id', $guru->id)
+            ->where('is_active', true)
+            ->pluck('kelas_id')
+            ->unique();
+        $kelasList = Kelas::whereIn('id', $guruKelasIds)->orderBy('nm_kls')->get();
+
+        // Get mapelList from guru's guruajar records
         $mapelIds = \App\Models\GuruAjar::where('guru_id', $guru->id)
             ->where('is_active', true)
             ->pluck('mapel_id');
@@ -62,6 +73,8 @@ class GuruNilaiHarianController extends Controller
             $query->where('mapel_id', $mapelId);
         if ($semester)
             $query->where('semester', $semester);
+        if ($kelasId)
+            $query->where('kelas_id', $kelasId);
 
         $nilais = $query->orderBy('harian_ke', 'asc')->get();
 
@@ -81,7 +94,7 @@ class GuruNilaiHarianController extends Controller
             $grouped[$key]['items'][] = $nilai;
         }
 
-        return view('admin.guru.nilai.index', compact('grouped', 'kelasList', 'tpList', 'mapelList', 'activeTp', 'tpId', 'mapelId', 'semester'));
+        return view('admin.guru.nilai.index', compact('grouped', 'kelasList', 'tpList', 'mapelList', 'activeTp', 'tpId', 'mapelId', 'semester', 'kelasId'));
     }
 
     public function downloadPdfGroup(Request $request)

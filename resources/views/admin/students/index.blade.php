@@ -167,6 +167,8 @@
                             <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
                                 Siswa</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                L/P</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
                                 NIS/NISN</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
                                 Kelas</th>
@@ -190,13 +192,15 @@
                                             class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-medium text-xs">
                                             {{ strtoupper(substr($student->name, 0, 1)) }}
                                         </div>
-                                        <div>
-                                            <span class="text-sm font-medium text-white">{{ $student->name }}</span>
-                                            <p class="text-xs text-slate-400">
-                                                {{ $student->jen_kel == 'L' ? 'Laki-laki' : ($student->jen_kel == 'P' ? 'Perempuan' : '-') }}
-                                            </p>
-                                        </div>
+                                        <span class="text-sm font-medium text-white">{{ $student->name }}</span>
                                     </div>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <button type="button" onclick="toggleGender({{ $student->id }}, this)"
+                                        class="group relative cursor-pointer inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-bold transition-all duration-200 hover:scale-110 hover:shadow-lg {{ $student->jen_kel == 'L' ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20 hover:bg-sky-500/30 hover:border-sky-500/40 hover:shadow-sky-500/20' : ($student->jen_kel == 'P' ? 'bg-pink-500/10 text-pink-400 border border-pink-500/20 hover:bg-pink-500/30 hover:border-pink-500/40 hover:shadow-pink-500/20' : 'bg-slate-500/10 text-slate-400 border border-slate-500/20') }}"
+                                        data-gender="{{ $student->jen_kel ?? '' }}" title="Update L ke P atau sebaliknya">
+                                        <span class="gender-text">{{ $student->jen_kel ?? '-' }}</span>
+                                    </button>
                                 </td>
                                 <td class="px-4 py-3">
                                     <div>
@@ -224,10 +228,11 @@
                                     </span>
                                 </td>
                                 <td class="px-4 py-3">
-                                    <div class="flex items-center justify-end gap-1">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <!-- Detail Button -->
                                         <a href="{{ route('admin.students.show', $student) }}"
-                                            class="cursor-pointer p-1.5 text-slate-400 hover:text-blue-400 transition-colors"
-                                            title="Detail">
+                                            class="cursor-pointer p-2 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/30 hover:border-blue-500/40 hover:scale-110 transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/20"
+                                            title="Lihat Detail">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -235,21 +240,23 @@
                                                     d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                             </svg>
                                         </a>
+                                        <!-- Edit Button -->
                                         <a href="{{ route('admin.students.edit', $student) }}"
-                                            class="cursor-pointer p-1.5 text-slate-400 hover:text-amber-400 transition-colors"
-                                            title="Edit">
+                                            class="cursor-pointer p-2 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/30 hover:border-amber-500/40 hover:scale-110 transition-all duration-200 hover:shadow-lg hover:shadow-amber-500/20"
+                                            title="Edit Siswa">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                             </svg>
                                         </a>
+                                        <!-- Delete Button -->
                                         <form action="{{ route('admin.students.destroy', $student) }}" method="POST"
                                             onsubmit="return confirm('Yakin ingin menghapus siswa ini?')" class="inline">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit"
-                                                class="cursor-pointer p-1.5 text-slate-400 hover:text-rose-400 transition-colors"
-                                                title="Hapus">
+                                                class="cursor-pointer p-2 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/30 hover:border-rose-500/40 hover:scale-110 transition-all duration-200 hover:shadow-lg hover:shadow-rose-500/20"
+                                                title="Hapus Siswa">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -261,7 +268,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-4 py-12 text-center">
+                                <td colspan="8" class="px-4 py-12 text-center">
                                     <svg class="w-12 h-12 mx-auto text-slate-600 mb-3" fill="none" stroke="currentColor"
                                         viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -499,3 +506,49 @@
         </div>
     @endif
 @endsection
+
+@push('scripts')
+    <script>
+        function toggleGender(studentId, button) {
+            button.disabled = true;
+            button.style.opacity = '0.5';
+
+            fetch(`{{ url('admin/students') }}/${studentId}/toggle-gender`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const newGender = data.jen_kel;
+                        const genderText = button.querySelector('.gender-text');
+
+                        // Update text
+                        genderText.textContent = newGender;
+                        button.dataset.gender = newGender;
+
+                        // Update classes for color
+                        button.className = button.className
+                            .replace(/bg-sky-500\/10|bg-pink-500\/10|bg-slate-500\/10/g, newGender === 'L' ? 'bg-sky-500/10' : 'bg-pink-500/10')
+                            .replace(/text-sky-400|text-pink-400|text-slate-400/g, newGender === 'L' ? 'text-sky-400' : 'text-pink-400')
+                            .replace(/border-sky-500\/20|border-pink-500\/20|border-slate-500\/20/g, newGender === 'L' ? 'border-sky-500/20' : 'border-pink-500/20')
+                            .replace(/hover:bg-sky-500\/30|hover:bg-pink-500\/30/g, newGender === 'L' ? 'hover:bg-sky-500/30' : 'hover:bg-pink-500/30')
+                            .replace(/hover:border-sky-500\/40|hover:border-pink-500\/40/g, newGender === 'L' ? 'hover:border-sky-500/40' : 'hover:border-pink-500/40')
+                            .replace(/hover:shadow-sky-500\/20|hover:shadow-pink-500\/20/g, newGender === 'L' ? 'hover:shadow-sky-500/20' : 'hover:shadow-pink-500/20');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Gagal mengubah jenis kelamin');
+                })
+                .finally(() => {
+                    button.disabled = false;
+                    button.style.opacity = '1';
+                });
+        }
+    </script>
+@endpush

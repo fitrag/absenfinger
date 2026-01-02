@@ -19,7 +19,13 @@ class ReportController extends Controller
     {
         $startDate = $request->get('start_date', now()->startOfWeek()->toDateString());
         $endDate = $request->get('end_date', now()->endOfWeek()->toDateString());
-        $kelasId = $request->get('kelas_id');
+
+        // Get default kelas (X DKV 1 or first kelas)
+        $defaultKelas = Kelas::where('nm_kls', 'like', '%X DKV 1%')->first();
+        if (!$defaultKelas) {
+            $defaultKelas = Kelas::orderBy('nm_kls')->first();
+        }
+        $kelasId = $request->get('kelas_id', $defaultKelas?->id);
 
         // Check user role
         $userRoles = session('user_roles', []);
@@ -169,7 +175,13 @@ class ReportController extends Controller
     {
         $startMonth = $request->get('start_month', now()->startOfMonth()->format('Y-m'));
         $endMonth = $request->get('end_month', now()->format('Y-m'));
-        $kelasId = $request->get('kelas_id');
+
+        // Get default kelas (X DKV 1 or first kelas)
+        $defaultKelas = Kelas::where('nm_kls', 'like', '%X DKV 1%')->first();
+        if (!$defaultKelas) {
+            $defaultKelas = Kelas::orderBy('nm_kls')->first();
+        }
+        $kelasId = $request->get('kelas_id', $defaultKelas?->id);
 
         // Check user role
         $userRoles = session('user_roles', []);

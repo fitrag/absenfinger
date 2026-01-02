@@ -34,6 +34,8 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
     Route::get('/profile', [\App\Http\Controllers\Admin\ProfileController::class, 'index'])->name('profile');
     Route::put('/profile', [\App\Http\Controllers\Admin\ProfileController::class, 'update'])->name('profile.update');
     Route::put('/profile/password', [\App\Http\Controllers\Admin\ProfileController::class, 'updatePassword'])->name('profile.password');
+    Route::put('/profile/guru', [\App\Http\Controllers\Admin\ProfileController::class, 'updateGuru'])->name('profile.guru');
+    Route::put('/profile/student', [\App\Http\Controllers\Admin\ProfileController::class, 'updateStudent'])->name('profile.student');
 
     // Students Routes
     Route::get('/students/naik-kelas', [StudentController::class, 'naikKelasForm'])->name('students.naikKelas');
@@ -43,6 +45,7 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
     Route::post('/students-import', [StudentController::class, 'import'])->name('students.import');
     Route::get('/students-export', [StudentController::class, 'export'])->name('students.export');
     Route::get('/students-print-absensi', [StudentController::class, 'printAbsensi'])->name('students.printAbsensi');
+    Route::post('/students/{student}/toggle-gender', [StudentController::class, 'toggleGender'])->name('students.toggleGender');
     Route::resource('students', StudentController::class);
 
     // Kelas Routes
@@ -53,7 +56,13 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
 
     // Users Routes
     Route::get('user-guru', [MUserController::class, 'guru'])->name('users.guru');
+    Route::post('user-guru/{user}/toggle-status', [MUserController::class, 'toggleStatusGuru'])->name('users.guru.toggleStatus');
+    Route::post('user-guru/{user}/reset-password', [MUserController::class, 'resetPasswordToNip'])->name('users.guru.resetPassword');
     Route::get('user-siswa', [MUserController::class, 'siswa'])->name('users.siswa');
+    Route::get('user-siswa/by-kelas/{kelas_id}', [MUserController::class, 'getUsersByKelas'])->name('users.siswa.byKelas');
+    Route::post('user-siswa/bulk-status', [MUserController::class, 'bulkUpdateStatusSiswa'])->name('users.siswa.bulkStatus');
+    Route::post('user-siswa/{user}/toggle-status', [MUserController::class, 'toggleStatus'])->name('users.siswa.toggleStatus');
+    Route::post('user-siswa/{user}/reset-password', [MUserController::class, 'resetPasswordToNisn'])->name('users.siswa.resetPassword');
     Route::resource('users', MUserController::class);
 
     // Role Routes
@@ -69,6 +78,8 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
 
     // Guru Mengajar Routes
     Route::resource('guruajar', GuruAjarController::class)->except(['create', 'show', 'edit']);
+    Route::post('guruajar/kelas', [GuruAjarController::class, 'storeKelas'])->name('guruajar.storeKelas');
+    Route::delete('guruajar/kelas/{id}', [GuruAjarController::class, 'destroyKelas'])->name('guruajar.destroyKelas');
 
     // Wali Kelas Routes
     Route::resource('walas', WalasController::class)->except(['create', 'show', 'edit']);
@@ -99,10 +110,12 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
 
         // Pelanggaran
         Route::get('/pelanggaran/students', [\App\Http\Controllers\Admin\PelanggaranController::class, 'getStudents'])->name('pelanggaran.students');
+        Route::get('/pelanggaran/print/{student}', [\App\Http\Controllers\Admin\PelanggaranController::class, 'printByStudent'])->name('pelanggaran.print');
         Route::resource('pelanggaran', \App\Http\Controllers\Admin\PelanggaranController::class)->except(['create', 'show', 'edit']);
 
         // Konseling
         Route::get('/konseling/students', [\App\Http\Controllers\Admin\KonselingController::class, 'getStudents'])->name('konseling.students');
+        Route::get('/konseling/print/{student}', [\App\Http\Controllers\Admin\KonselingController::class, 'printByStudent'])->name('konseling.print');
         Route::resource('konseling', \App\Http\Controllers\Admin\KonselingController::class)->except(['create', 'show', 'edit']);
     });
 
@@ -215,7 +228,15 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
     Route::prefix('guru/pkl')->name('guru.pkl.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Admin\GuruPklController::class, 'index'])->name('index');
         Route::get('/input-nilai/{id}', [\App\Http\Controllers\Admin\GuruPklController::class, 'inputNilai'])->name('input_nilai');
-        Route::post('/store-nilai/{id}', [\App\Http\Controllers\Admin\GuruPklController::class, 'storeNilai'])->name('store_nilai');
+        Route::get('/store-nilai/{id}', [\App\Http\Controllers\Admin\GuruPklController::class, 'storeNilai'])->name('store_nilai');
+    });
+
+    // Guru Mengajar Kelas Routes (For Guru Role managing own classes)
+    Route::prefix('guru/kelas-ajar')->name('guru.kelas-ajar.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\GuruKelasAjarController::class, 'index'])->name('index');
+        Route::post('/', [\App\Http\Controllers\Admin\GuruKelasAjarController::class, 'store'])->name('store');
+        Route::post('/store-mapel', [\App\Http\Controllers\Admin\GuruKelasAjarController::class, 'storeMapel'])->name('storeMapel');
+        Route::delete('/{id}', [\App\Http\Controllers\Admin\GuruKelasAjarController::class, 'destroy'])->name('destroy');
     });
 
     // Siswa PKL Routes (For student level accessing via admin panel)
@@ -223,6 +244,13 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
         Route::get('/', [\App\Http\Controllers\Admin\SiswaPklController::class, 'dashboard'])->name('dashboard');
         Route::post('/check-in', [\App\Http\Controllers\Admin\SiswaPklController::class, 'checkIn'])->name('checkIn');
         Route::post('/check-out', [\App\Http\Controllers\Admin\SiswaPklController::class, 'checkOut'])->name('checkOut');
+    });
+
+    // Admin Jurnal Routes (For admin to view all teachers' journals)
+    Route::prefix('jurnal')->name('jurnal.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\AdminJurnalController::class, 'index'])->name('index');
+        Route::get('/{guruId}', [\App\Http\Controllers\Admin\AdminJurnalController::class, 'show'])->name('show');
+        Route::get('/{guruId}/pdf', [\App\Http\Controllers\Admin\AdminJurnalController::class, 'downloadPdf'])->name('pdf');
     });
 });
 

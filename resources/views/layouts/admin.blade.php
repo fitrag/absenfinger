@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Admin Dashboard') - AbsenFinger</title>
+    <link rel="icon" type="image/png"
+        href="{{ asset('storage/' . \App\Models\Setting::get('school_logo', 'images/default-logo.png')) }}">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,6 +19,38 @@
     <style>
         * {
             font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+        }
+
+        /* Global cursor pointer for clickable elements */
+        button,
+        input[type="button"],
+        input[type="submit"],
+        input[type="reset"],
+        select,
+        a,
+        label.cursor-pointer,
+        .cursor-pointer,
+        [role="button"] {
+            cursor: pointer !important;
+        }
+
+        /* Custom scrollbar for dark theme */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(51, 65, 85, 0.3);
+            border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.5);
+            border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 116, 139, 0.7);
         }
     </style>
 
@@ -87,10 +121,10 @@
                                 </div>
                                 @if($headerUserFoto)
                                     <img src="{{ asset('storage/' . $headerUserFoto) }}" alt="Profile"
-                                        class="w-9 h-9 rounded-lg object-cover shadow-lg shadow-purple-500/20">
+                                        class="w-9 h-11 rounded-lg object-cover shadow-lg shadow-purple-500/20">
                                 @else
                                     <div
-                                        class="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm shadow-lg shadow-purple-500/20">
+                                        class="w-9 h-11 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm shadow-lg shadow-purple-500/20">
                                         {{ $headerUserInitial ?: 'U' }}
                                     </div>
                                 @endif
@@ -149,8 +183,12 @@
 
             <!-- Footer -->
             <footer class="border-t border-slate-800/50 px-4 sm:px-6 lg:px-8 py-4">
+                @php
+                    $footerSettings = \App\Models\Setting::getAllSettings();
+                    $footerSystemName = $footerSettings['system_name'] ?? 'AbsenFinger';
+                @endphp
                 <p class="text-center text-sm text-slate-500">
-                    &copy; {{ date('Y') }} AbsenFinger. All rights reserved.
+                    &copy; {{ date('Y') }} {{ $footerSystemName }}. All rights reserved.
                 </p>
             </footer>
         </div>

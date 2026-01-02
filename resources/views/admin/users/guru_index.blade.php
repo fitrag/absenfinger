@@ -210,5 +210,95 @@
     window.addEventListener('popstate', function() {
         window.location.reload(); 
     });
+
+    // Toggle status function for guru
+    function toggleStatusGuru(userId, button) {
+        button.disabled = true;
+        button.style.opacity = '0.5';
+        
+        fetch(`{{ url('admin/user-guru') }}/${userId}/toggle-status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const isActive = data.is_active;
+                const statusText = button.querySelector('.status-text');
+                const statusIcon = button.querySelector('.status-icon');
+                
+                // Update text
+                statusText.textContent = isActive ? 'Aktif' : 'Nonaktif';
+                
+                // Update tooltip
+                button.title = 'Klik untuk ' + (isActive ? 'nonaktifkan' : 'aktifkan') + ' user';
+                
+                // Update classes
+                button.className = button.className
+                    .replace(/bg-emerald-500\/10|bg-slate-500\/10/g, isActive ? 'bg-emerald-500/10' : 'bg-slate-500/10')
+                    .replace(/text-emerald-400|text-slate-400/g, isActive ? 'text-emerald-400' : 'text-slate-400')
+                    .replace(/border-emerald-500\/20|border-slate-500\/20/g, isActive ? 'border-emerald-500/20' : 'border-slate-500/20')
+                    .replace(/hover:bg-emerald-500\/30|hover:bg-slate-500\/30/g, isActive ? 'hover:bg-emerald-500/30' : 'hover:bg-slate-500/30')
+                    .replace(/hover:border-emerald-500\/40|hover:border-slate-500\/40/g, isActive ? 'hover:border-emerald-500/40' : 'hover:border-slate-500/40')
+                    .replace(/hover:shadow-emerald-500\/20|hover:shadow-slate-500\/20/g, isActive ? 'hover:shadow-emerald-500/20' : 'hover:shadow-slate-500/20');
+                
+                // Update icon
+                if (isActive) {
+                    statusIcon.innerHTML = '<svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>';
+                } else {
+                    statusIcon.innerHTML = '<svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg>';
+                }
+                
+                button.dataset.active = isActive ? '1' : '0';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Gagal mengubah status');
+        })
+        .finally(() => {
+            button.disabled = false;
+            button.style.opacity = '1';
+        });
+    }
+
+    // Reset password function for guru
+    function resetPasswordGuru(userId, userName, button) {
+        if (!confirm(`Reset password ${userName} ke Username?`)) {
+            return;
+        }
+        
+        button.disabled = true;
+        button.style.opacity = '0.5';
+        
+        fetch(`{{ url('admin/user-guru') }}/${userId}/reset-password`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+            } else {
+                alert(data.message || 'Gagal reset password');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Gagal reset password');
+        })
+        .finally(() => {
+            button.disabled = false;
+            button.style.opacity = '1';
+        });
+    }
 </script>
 @endpush

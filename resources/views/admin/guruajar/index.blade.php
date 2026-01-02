@@ -5,34 +5,73 @@
 
 @section('content')
     <div class="space-y-6" x-data="{ 
-                    showAddModal: false,
-                    showEditModal: false,
-                    editData: { id: null, guru_id: '', mapel_id: '', is_active: true },
-                    selectedMapels: [],
-                    mapelSearch: '',
-                    showMapelDropdown: false,
-                    mapels: {{ Js::from($mapels) }},
-                    get filteredMapels() {
-                        return this.mapels.filter(m => 
-                            m.nm_mapel.toLowerCase().includes(this.mapelSearch.toLowerCase()) &&
-                            !this.selectedMapels.includes(m.id)
-                        );
-                    },
-                    addMapel(mapel) {
-                        if (!this.selectedMapels.includes(mapel.id)) {
-                            this.selectedMapels.push(mapel.id);
-                        }
-                        this.mapelSearch = '';
-                        this.showMapelDropdown = false;
-                    },
-                    removeMapel(id) {
-                        this.selectedMapels = this.selectedMapels.filter(m => m !== id);
-                    },
-                    getMapelName(id) {
-                        const mapel = this.mapels.find(m => m.id === id);
-                        return mapel ? mapel.nm_mapel : '';
-                    }
-                }">
+                                                showAddModal: false,
+                                                showEditModal: false,
+                                                showKelasModal: false,
+                                                kelasModalGuruId: null,
+                                                kelasModalGuruName: '',
+                                                kelasModalMapelId: null,
+                                                kelasModalMapelName: '',
+                                                editData: { id: null, guru_id: '', mapel_id: '', is_active: true },
+                                                selectedMapels: [],
+                                                selectedKelas: [],
+                                                mapelSearch: '',
+                                                kelasSearch: '',
+                                                showMapelDropdown: false,
+                                                showKelasDropdown: false,
+                                                mapels: {{ Js::from($mapels) }},
+                                                kelasList: {{ Js::from($kelasList) }},
+                                                tpList: {{ Js::from($tpList) }},
+                                                activeTp: {{ Js::from($activeTp) }},
+                                                get filteredMapels() {
+                                                    return this.mapels.filter(m => 
+                                                        m.nm_mapel.toLowerCase().includes(this.mapelSearch.toLowerCase()) &&
+                                                        !this.selectedMapels.includes(m.id)
+                                                    );
+                                                },
+                                                get filteredKelas() {
+                                                    return this.kelasList.filter(k => 
+                                                        k.nm_kls.toLowerCase().includes(this.kelasSearch.toLowerCase()) &&
+                                                        !this.selectedKelas.includes(k.id)
+                                                    );
+                                                },
+                                                addMapel(mapel) {
+                                                    if (!this.selectedMapels.includes(mapel.id)) {
+                                                        this.selectedMapels.push(mapel.id);
+                                                    }
+                                                    this.mapelSearch = '';
+                                                    this.showMapelDropdown = false;
+                                                },
+                                                addKelas(kelas) {
+                                                    if (!this.selectedKelas.includes(kelas.id)) {
+                                                        this.selectedKelas.push(kelas.id);
+                                                    }
+                                                    this.kelasSearch = '';
+                                                    this.showKelasDropdown = false;
+                                                },
+                                                removeMapel(id) {
+                                                    this.selectedMapels = this.selectedMapels.filter(m => m !== id);
+                                                },
+                                                removeKelas(id) {
+                                                    this.selectedKelas = this.selectedKelas.filter(k => k !== id);
+                                                },
+                                                getMapelName(id) {
+                                                    const mapel = this.mapels.find(m => m.id === id);
+                                                    return mapel ? mapel.nm_mapel : '';
+                                                },
+                                                getKelasName(id) {
+                                                    const kelas = this.kelasList.find(k => k.id === id);
+                                                    return kelas ? kelas.nm_kls : '';
+                                                },
+                                                openKelasModal(guruId, guruName, mapelId, mapelName) {
+                                                    this.kelasModalGuruId = guruId;
+                                                    this.kelasModalGuruName = guruName;
+                                                    this.kelasModalMapelId = mapelId;
+                                                    this.kelasModalMapelName = mapelName;
+                                                    this.selectedKelas = [];
+                                                    this.showKelasModal = true;
+                                                }
+                                            }">
         <!-- Header -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -66,12 +105,32 @@
 
         <!-- Search Box -->
         <div class="flex flex-wrap items-center justify-between gap-4">
-            <form action="{{ route('admin.guruajar.index') }}" method="GET" class="flex items-center gap-3">
+            <form action="{{ route('admin.guruajar.index') }}" method="GET" class="flex flex-wrap items-center gap-3">
+                <!-- TP Filter -->
+                <div class="relative w-40">
+                    <select name="tp" onchange="this.form.submit()"
+                        class="w-full px-3 py-2 text-sm bg-slate-900/50 border border-slate-800/50 rounded-lg text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 appearance-none">
+                        <option value="">Semua TP</option>
+                        @foreach($tpList as $tp)
+                            <option value="{{ $tp->id }}" {{ $selectedTpId == $tp->id ? 'selected' : '' }}>
+                                {{ $tp->nm_tp }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-slate-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Search Input -->
                 <div class="relative w-64">
                     <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari guru atau mapel..."
                         class="w-full px-3 pr-8 py-2 text-sm bg-slate-900/50 border border-slate-800/50 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50">
                     @if(request('search'))
-                        <a href="{{ route('admin.guruajar.index') }}" class="absolute inset-y-0 right-0 pr-2 flex items-center">
+                        <a href="{{ route('admin.guruajar.index', ['tp' => request('tp')]) }}"
+                            class="absolute inset-y-0 right-0 pr-2 flex items-center">
                             <svg class="w-4 h-4 text-slate-400 hover:text-white" fill="none" stroke="currentColor"
                                 viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -105,54 +164,115 @@
                                 NIP</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
                                 Mapel yang Diajarkan</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                Kelas yang Diajar</th>
                             <th class="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
                                 Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-800/50">
-                        @forelse($groupedData as $index => $data)
-                            <tr class="hover:bg-slate-800/30 transition-colors">
-                                <td class="px-4 py-3 text-sm text-slate-400">{{ $loop->iteration }}</td>
-                                <td class="px-4 py-3 text-sm font-medium text-white">{{ $data['guru']->nama ?? '-' }}</td>
-                                <td class="px-4 py-3 text-sm text-slate-300 font-mono">{{ $data['guru']->nip ?? '-' }}</td>
-                                <td class="px-4 py-3">
-                                    <div class="flex flex-wrap gap-1">
-                                        @foreach($data['mapels'] as $mapelData)
-                                            <span
-                                                class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium {{ $mapelData['is_active'] ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'bg-slate-500/10 text-slate-400 border border-slate-500/20 ' }}">
-                                                {{ $mapelData['mapel']->alias ?? $mapelData['mapel']->nm_mapel }}
-                                                <button type="button"
-                                                    @click="editData = { id: {{ $mapelData['id'] }}, guru_id: '{{ $data['guru']->id }}', mapel_id: '{{ $mapelData['mapel']->id }}', is_active: {{ $mapelData['is_active'] ? 'true' : 'false' }} }; showEditModal = true"
-                                                    class="hover:text-amber-400" title="Edit">
+                        @php $rowNumber = 0; @endphp
+                        @forelse($groupedData as $guruId => $data)
+                            @foreach($data['mapels'] as $mapelIndex => $mapelData)
+                                @php $rowNumber++; @endphp
+                                <tr class="hover:bg-slate-800/30 transition-colors {{ $mapelIndex > 0 ? 'border-t-0' : '' }}">
+                                    @if($mapelIndex === 0)
+                                        <td class="px-4 py-3 text-sm text-slate-400" rowspan="{{ count($data['mapels']) }}">
+                                            {{ $loop->parent->iteration }}</td>
+                                        <td class="px-4 py-3 text-sm font-medium text-white" rowspan="{{ count($data['mapels']) }}">
+                                            {{ $data['guru']->nama ?? '-' }}</td>
+                                        <td class="px-4 py-3 text-sm text-slate-300 font-mono" rowspan="{{ count($data['mapels']) }}">
+                                            {{ $data['guru']->nip ?? '-' }}</td>
+                                    @endif
+                                    <td class="px-4 py-3">
+                                        <span
+                                            class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium {{ $mapelData['is_active'] ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'bg-slate-500/10 text-slate-400 border border-slate-500/20 ' }}">
+                                            {{ $mapelData['mapel']->alias ?? $mapelData['mapel']->nm_mapel }}
+                                            <button type="button"
+                                                @click="editData = { id: {{ $mapelData['id'] }}, guru_id: '{{ $data['guru']->id }}', mapel_id: '{{ $mapelData['mapel']->id }}', is_active: {{ $mapelData['is_active'] ? 'true' : 'false' }} }; showEditModal = true"
+                                                class="hover:text-amber-400" title="Edit">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                </svg>
+                                            </button>
+                                            <form action="{{ route('admin.guruajar.destroy', $mapelData['id']) }}" method="POST"
+                                                class="inline" onsubmit="return confirm('Hapus mapel ini dari guru?')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="hover:text-rose-400" title="Hapus">
                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                            d="M6 18L18 6M6 6l12 12" />
                                                     </svg>
                                                 </button>
-                                                <form action="{{ route('admin.guruajar.destroy', $mapelData['id']) }}" method="POST"
-                                                    class="inline" onsubmit="return confirm('Hapus mapel ini dari guru?')">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="hover:text-rose-400" title="Hapus">
-                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                                d="M6 18L18 6M6 6l12 12" />
-                                                        </svg>
-                                                    </button>
-                                                </form>
-                                            </span>
-                                        @endforeach
-                                    </div>
-                                </td>
-                                <td class="px-4 py-3">
-                                    <div class="flex items-center justify-end gap-1">
-                                        <span class="text-xs text-slate-500">{{ count($data['mapels']) }} mapel</span>
-                                    </div>
-                                </td>
-                            </tr>
+                                            </form>
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div class="flex flex-wrap gap-1 items-center">
+                                            @php
+                                                $guruKelasAjar = $kelasAjarData[$data['guru']->id][$mapelData['mapel']->id] ?? collect([]);
+                                            @endphp
+                                            @forelse($guruKelasAjar as $kelasAjar)
+                                                <span
+                                                    class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium {{ $kelasAjar->is_active ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-slate-500/10 text-slate-400 border border-slate-500/20' }}">
+                                                    {{ $kelasAjar->kelas->nm_kls ?? '-' }}
+                                                    <form action="{{ route('admin.guruajar.destroyKelas', $kelasAjar->id) }}"
+                                                        method="POST" class="inline"
+                                                        onsubmit="return confirm('Hapus kelas ini dari guru?')">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="hover:text-rose-400" title="Hapus">
+                                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                                    d="M6 18L18 6M6 6l12 12" />
+                                                            </svg>
+                                                        </button>
+                                                    </form>
+                                                </span>
+                                            @empty
+                                                <span class="text-xs text-slate-500">-</span>
+                                            @endforelse
+                                            <!-- Add Kelas Button for this Mapel -->
+                                            <button type="button"
+                                                @click="openKelasModal({{ $data['guru']->id }}, '{{ $data['guru']->nama }}', {{ $mapelData['mapel']->id }}, '{{ $mapelData['mapel']->nm_mapel }}')"
+                                                class="p-1 rounded-lg text-purple-400 hover:text-purple-300 transition-colors cursor-pointer ml-1"
+                                                style="background-color: rgba(168, 85, 247, 0.2);"
+                                                title="Tambah Kelas untuk {{ $mapelData['mapel']->nm_mapel }}">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </td>
+                                    @if($mapelIndex === 0)
+                                        <td class="px-4 py-3" rowspan="{{ count($data['mapels']) }}">
+                                            <div class="flex items-center justify-end gap-2">
+                                                <button type="button"
+                                                    @click="showAddModal = true; selectedMapels = []; $nextTick(() => { document.querySelector('select[name=guru_id]').value = '{{ $data['guru']->id }}' })"
+                                                    class="p-2 rounded-lg text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer"
+                                                    style="background-color: rgba(16, 185, 129, 0.3);"
+                                                    title="Tambah Mapel untuk {{ $data['guru']->nama }}">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                            d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                    </svg>
+                                                </button>
+                                                <span class="text-xs text-slate-500">{{ count($data['mapels']) }} mapel</span>
+                                                @php
+                                                    $totalKelas = collect($kelasAjarData[$data['guru']->id] ?? [])->flatten()->count();
+                                                @endphp
+                                                <span class="text-xs text-slate-500">{{ $totalKelas }} kelas</span>
+                                            </div>
+                                        </td>
+                                    @endif
+                                </tr>
+                            @endforeach
                         @empty
                             <tr>
-                                <td colspan="5" class="px-4 py-12 text-center">
+                                <td colspan="6" class="px-4 py-12 text-center">
                                     <svg class="w-12 h-12 mx-auto text-slate-600 mb-3" fill="none" stroke="currentColor"
                                         viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -334,6 +454,113 @@
                                 Update
                             </button>
                             <button type="button" @click="showEditModal = false"
+                                class="px-6 py-2.5 bg-slate-700 text-white font-medium rounded-xl hover:bg-slate-600 transition-colors">
+                                Batal
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add Kelas Modal -->
+        <div x-show="showKelasModal" x-cloak
+            class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center"
+            @keydown.escape.window="showKelasModal = false">
+            <div class="bg-slate-900 rounded-2xl border border-slate-800 p-6 w-full max-w-4xl m-4 max-h-[90vh] overflow-y-auto"
+                @click.outside="showKelasModal = false">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Tambah Kelas Ajar</h3>
+                        <p class="text-sm text-slate-400 mt-1">Pilih kelas untuk <span
+                                x-text="kelasModalGuruName" class="text-purple-400 font-medium"></span> - <span
+                                x-text="kelasModalMapelName" class="text-cyan-400 font-medium"></span></p>
+                    </div>
+                    <button @click="showKelasModal = false" class="text-slate-400 hover:text-white cursor-pointer">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <form action="{{ route('admin.guruajar.storeKelas') }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="guru_id" x-bind:value="kelasModalGuruId">
+                    <input type="hidden" name="mapel_id" x-bind:value="kelasModalMapelId">
+                    <div class="space-y-5">
+                        <!-- Tahun Pelajaran -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">Tahun Pelajaran <span
+                                    class="text-rose-400">*</span></label>
+                            <select name="tp_id" required
+                                class="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500/50">
+                                @foreach($tpList as $tp)
+                                    <option value="{{ $tp->id }}" {{ $activeTp && $activeTp->id == $tp->id ? 'selected' : '' }}>
+                                        {{ $tp->nm_tp }} {{ $tp->is_active ? '(Aktif)' : '' }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Kelas (Searchable Combobox) -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">Kelas <span
+                                    class="text-rose-400">*</span></label>
+
+                            <!-- Selected Kelas -->
+                            <div class="flex flex-wrap gap-2 mb-3" x-show="selectedKelas.length > 0">
+                                <template x-for="id in selectedKelas" :key="id">
+                                    <span
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                                        <span x-text="getKelasName(id)"></span>
+                                        <button type="button" @click="removeKelas(id)" class="hover:text-rose-400">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                        <input type="hidden" name="kelas[]" :value="id">
+                                    </span>
+                                </template>
+                            </div>
+
+                            <!-- Search Input -->
+                            <div class="relative">
+                                <input type="text" x-model="kelasSearch" @focus="showKelasDropdown = true"
+                                    @click.outside="showKelasDropdown = false" placeholder="Ketik untuk mencari kelas..."
+                                    class="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500/50 placeholder-slate-500">
+
+                                <!-- Dropdown -->
+                                <div x-show="showKelasDropdown && filteredKelas.length > 0"
+                                    class="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                                    <template x-for="kelas in filteredKelas" :key="kelas.id">
+                                        <button type="button" @click="addKelas(kelas)"
+                                            class="w-full px-4 py-2.5 text-left text-sm text-white hover:bg-slate-700/50 flex items-center justify-between">
+                                            <span x-text="kelas.nm_kls"></span>
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1">Ketik nama kelas lalu klik untuk memilih</p>
+                        </div>
+
+                        <!-- Status -->
+                        <div class="border-t border-slate-700/50 pt-4">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" name="is_active" value="1" checked
+                                    class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-purple-500 focus:ring-purple-500/50">
+                                <span class="text-sm text-slate-300">Aktif</span>
+                            </label>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="flex items-center gap-3 pt-4 border-t border-slate-700/50">
+                            <button type="submit" :disabled="selectedKelas.length === 0"
+                                class="flex-1 px-6 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all shadow-lg shadow-purple-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                                Simpan
+                            </button>
+                            <button type="button" @click="showKelasModal = false"
                                 class="px-6 py-2.5 bg-slate-700 text-white font-medium rounded-xl hover:bg-slate-600 transition-colors">
                                 Batal
                             </button>

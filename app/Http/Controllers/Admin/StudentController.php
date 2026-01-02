@@ -41,11 +41,17 @@ class StudentController extends Controller
         }
         // Pagination
         $perPage = $request->get('perPage', 36);
+
+        // Join with kelas for proper sorting
+        $query->select('students.*')
+            ->leftJoin('kelas', 'students.kelas_id', '=', 'kelas.id')
+            ->orderBy('kelas.nm_kls', 'asc')
+            ->orderBy('students.name', 'asc');
+
         if ($perPage === 'all') {
-            $students = $query->orderBy('name')->get();
+            $students = $query->get();
         } else {
-            $students = $query->orderBy('name')
-                ->paginate((int) $perPage)->withQueryString();
+            $students = $query->paginate((int) $perPage)->withQueryString();
         }
 
         // Get kelas and jurusan for filter
@@ -209,6 +215,21 @@ class StudentController extends Controller
 
         return redirect()->route('admin.students.index')
             ->with('success', 'Data siswa dan akun user berhasil dihapus.');
+    }
+
+    /**
+     * Toggle student gender (L <-> P).
+     */
+    public function toggleGender(Student $student)
+    {
+        $newGender = $student->jen_kel === 'L' ? 'P' : 'L';
+        $student->update(['jen_kel' => $newGender]);
+
+        return response()->json([
+            'success' => true,
+            'jen_kel' => $newGender,
+            'message' => 'Jenis kelamin berhasil diubah menjadi ' . ($newGender === 'L' ? 'Laki-laki' : 'Perempuan')
+        ]);
     }
 
     /**
@@ -395,16 +416,46 @@ class StudentController extends Controller
         ]);
 
         $updated = 0;
+        $deactivated = 0;
+
         foreach ($request->students as $data) {
             $student = Student::where('nis', $data['nis'])->first();
             if ($student && $student->kelas_id != $data['kelas_id']) {
-                $student->update(['kelas_id' => $data['kelas_id']]);
+                // Get the new kelas
+                $newKelas = Kelas::find($data['kelas_id']);
+
+                // Check if new kelas is "-" (alumni/graduated)
+                if ($newKelas && $newKelas->nm_kls === '-') {
+                    // Deactivate student
+                    $student->update([
+                        'kelas_id' => $data['kelas_id'],
+                        'is_active' => false,
+                    ]);
+
+                    // Deactivate associated user
+                    if ($student->user_id) {
+                        MUser::where('id', $student->user_id)->update(['is_active' => false]);
+                    } else {
+                        // Fallback: try to find user by NIS
+                        MUser::where('username', $student->nis)->update(['is_active' => false]);
+                    }
+
+                    $deactivated++;
+                } else {
+                    // Normal class update
+                    $student->update(['kelas_id' => $data['kelas_id']]);
+                }
                 $updated++;
             }
         }
 
+        $message = "Berhasil mengupdate kelas untuk {$updated} siswa";
+        if ($deactivated > 0) {
+            $message .= ". {$deactivated} siswa dinonaktifkan (lulus/pindah ke kelas '-')";
+        }
+
         return redirect()->route('admin.students.index')
-            ->with('success', "Berhasil mengupdate kelas untuk {$updated} siswa");
+            ->with('success', $message);
     }
 
     /**
