@@ -228,7 +228,9 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
     Route::prefix('guru/pkl')->name('guru.pkl.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Admin\GuruPklController::class, 'index'])->name('index');
         Route::get('/input-nilai/{id}', [\App\Http\Controllers\Admin\GuruPklController::class, 'inputNilai'])->name('input_nilai');
-        Route::get('/store-nilai/{id}', [\App\Http\Controllers\Admin\GuruPklController::class, 'storeNilai'])->name('store_nilai');
+        Route::post('/store-nilai/{id}', [\App\Http\Controllers\Admin\GuruPklController::class, 'storeNilai'])->name('store_nilai');
+        Route::get('/set-lokasi', [\App\Http\Controllers\Admin\GuruPklController::class, 'setLokasi'])->name('set_lokasi');
+        Route::put('/update-lokasi/{id}', [\App\Http\Controllers\Admin\GuruPklController::class, 'updateLokasi'])->name('update_lokasi');
     });
 
     // Guru Mengajar Kelas Routes (For Guru Role managing own classes)
@@ -237,11 +239,6 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
         Route::post('/', [\App\Http\Controllers\Admin\GuruKelasAjarController::class, 'store'])->name('store');
         Route::post('/store-mapel', [\App\Http\Controllers\Admin\GuruKelasAjarController::class, 'storeMapel'])->name('storeMapel');
         Route::delete('/{id}', [\App\Http\Controllers\Admin\GuruKelasAjarController::class, 'destroy'])->name('destroy');
-        Route::post('/store-nilai/{id}', [\App\Http\Controllers\Admin\GuruPklController::class, 'storeNilai'])->name('store_nilai');
-        Route::get('/set-lokasi', [\App\Http\Controllers\Admin\GuruPklController::class, 'setLokasi'])->name('set_lokasi');
-        Route::put('/update-lokasi/{id}', [\App\Http\Controllers\Admin\GuruPklController::class, 'updateLokasi'])->name('update_lokasi');
-        Route::get('/set-lokasi', [\App\Http\Controllers\Admin\GuruPklController::class, 'setLokasi'])->name('set_lokasi');
-        Route::put('/update-lokasi/{id}', [\App\Http\Controllers\Admin\GuruPklController::class, 'updateLokasi'])->name('update_lokasi');
     });
 
     // Siswa PKL Routes (For student level accessing via admin panel)
