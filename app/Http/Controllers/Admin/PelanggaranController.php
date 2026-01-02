@@ -43,8 +43,11 @@ class PelanggaranController extends Controller
             });
         }
 
-        $pelanggarans = $query->orderBy('tanggal', 'desc')
-            ->orderBy('created_at', 'desc')
+        $pelanggarans = $query->join('students', 'pds_pelanggarans.student_id', '=', 'students.id')
+            ->orderBy('students.name', 'asc')
+            ->orderBy('pds_pelanggarans.tanggal', 'desc')
+            ->orderBy('pds_pelanggarans.created_at', 'desc')
+            ->select('pds_pelanggarans.*')
             ->paginate(15)
             ->withQueryString();
 
@@ -107,7 +110,7 @@ class PelanggaranController extends Controller
             'status' => 'required|in:pending,diproses,selesai',
         ]);
 
-        $pelanggaran->update([
+        $updateData = [
             'student_id' => $request->student_id,
             'tanggal' => $request->tanggal,
             'jenis_pelanggaran' => $request->jenis_pelanggaran,
@@ -116,7 +119,14 @@ class PelanggaranController extends Controller
             'tindakan' => $request->tindakan,
             'keterangan' => $request->keterangan,
             'status' => $request->status,
-        ]);
+        ];
+
+        // Set created_by if it's null (for old records)
+        if (empty($pelanggaran->created_by)) {
+            $updateData['created_by'] = Session::get('user_id');
+        }
+
+        $pelanggaran->update($updateData);
 
         return redirect()->route('admin.kesiswaan.pelanggaran.index')
             ->with('success', 'Data pelanggaran berhasil diperbarui');
@@ -157,5 +167,22 @@ class PelanggaranController extends Controller
         });
 
         return response()->json($students);
+    }
+
+    /**
+     * Print pelanggaran by student.
+     */
+    public function printByStudent(Student $student)
+    {
+        $pelanggarans = PdsPelanggaran::with('creator')
+            ->where('student_id', $student->id)
+            ->orderBy('tanggal', 'desc')
+            ->get();
+
+        $totalPoin = $pelanggarans->sum('poin');
+
+        $settings = \App\Models\Setting::getAllSettings();
+
+        return view('admin.kesiswaan.pelanggaran.print', compact('student', 'pelanggarans', 'totalPoin', 'settings'));
     }
 }

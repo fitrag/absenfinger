@@ -39,20 +39,27 @@
             </div>
         </div>
 
-        <!-- Search Box -->
+        <!-- Search Box & Filter -->
         <div class="flex flex-wrap items-center justify-between gap-4">
             <form action="{{ route('admin.walas.index') }}" method="GET" class="flex items-center gap-3">
                 <div class="relative w-64">
                     <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari guru atau kelas..."
                         class="w-full px-3 pr-8 py-2 text-sm bg-slate-900/50 border border-slate-800/50 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50">
                     @if(request('search'))
-                        <a href="{{ route('admin.walas.index') }}" class="absolute inset-y-0 right-0 pr-2 flex items-center cursor-pointer">
+                        <a href="{{ route('admin.walas.index', ['tp_id' => request('tp_id')]) }}" class="absolute inset-y-0 right-0 pr-2 flex items-center cursor-pointer">
                             <svg class="w-4 h-4 text-slate-400 hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </a>
                     @endif
                 </div>
+                <select name="tp_id" onchange="this.form.submit()"
+                    class="px-3 py-2 text-sm bg-slate-900/50 border border-slate-800/50 rounded-lg text-white focus:outline-none focus:border-purple-500/50">
+                    <option value="">Semua Tahun Pelajaran</option>
+                    @foreach($tahunPelajarans as $tp)
+                        <option value="{{ $tp->id }}" {{ $selectedTpId == $tp->id ? 'selected' : '' }}>{{ $tp->nm_tp }}</option>
+                    @endforeach
+                </select>
                 <button type="submit" class="px-3 py-2 bg-purple-500/20 text-purple-400 rounded-lg hover:bg-purple-500/30 transition-colors cursor-pointer">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />

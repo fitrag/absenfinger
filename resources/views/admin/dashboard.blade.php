@@ -161,10 +161,12 @@
                     <div class="p-6 border-b border-slate-800/50">
                         <div class="flex items-center justify-between">
                             <h3 class="text-lg font-semibold text-white">Siswa Terlambat</h3>
-                            <a href="{{ url('/admin/kesiswaan/siswa-terlambat') }}"
-                                class="text-sm text-blue-400 hover:text-blue-300 transition-colors">
-                                Lihat semua →
-                            </a>
+                            @if(session('user_level') !== 'guru')
+                                <a href="{{ url('/admin/kesiswaan/siswa-terlambat') }}"
+                                    class="text-sm text-blue-400 hover:text-blue-300 transition-colors">
+                                    Lihat semua →
+                                </a>
+                            @endif
                         </div>
                     </div>
                     <div class="divide-y divide-slate-800/50">
@@ -210,10 +212,12 @@
                     <div class="p-6 border-b border-slate-800/50">
                         <div class="flex items-center justify-between">
                             <h3 class="text-lg font-semibold text-white">Siswa Konseling</h3>
-                            <a href="{{ route('admin.kesiswaan.konseling.index') }}"
-                                class="text-sm text-blue-400 hover:text-blue-300 transition-colors">
-                                Lihat semua →
-                            </a>
+                            @if(session('user_level') !== 'guru')
+                                <a href="{{ route('admin.kesiswaan.konseling.index') }}"
+                                    class="text-sm text-blue-400 hover:text-blue-300 transition-colors">
+                                    Lihat semua →
+                                </a>
+                            @endif
                         </div>
                     </div>
                     <div class="divide-y divide-slate-800/50">
@@ -263,10 +267,12 @@
                     <div class="p-6 border-b border-slate-800/50">
                         <div class="flex items-center justify-between">
                             <h3 class="text-lg font-semibold text-white">Kehadiran Terbaru</h3>
-                            <a href="{{ url('/admin/attendance') }}"
-                                class="text-sm text-blue-400 hover:text-blue-300 transition-colors">
-                                Lihat semua →
-                            </a>
+                            @if(session('user_level') !== 'guru')
+                                <a href="{{ url('/admin/attendance') }}"
+                                    class="text-sm text-blue-400 hover:text-blue-300 transition-colors">
+                                    Lihat semua →
+                                </a>
+                            @endif
                         </div>
                     </div>
                     <div class="divide-y divide-slate-800/50">
@@ -319,10 +325,12 @@
                             @endif
                         </h3>
                         @if(isset($isWaliKelas) && $isWaliKelas && isset($kelasInfo))
-                            <a href="{{ route('admin.kesiswaan.pelanggaran.index') }}"
-                                class="text-sm text-blue-400 hover:text-blue-300 transition-colors">
-                                Lihat semua →
-                            </a>
+                            @if(session('user_level') !== 'guru')
+                                <a href="{{ route('admin.kesiswaan.pelanggaran.index') }}"
+                                    class="text-sm text-blue-400 hover:text-blue-300 transition-colors">
+                                    Lihat semua →
+                                </a>
+                            @endif
                         @else
                             <div class="flex items-center gap-4">
                                 <div class="flex items-center gap-2">
@@ -361,9 +369,9 @@
                                 <div class="text-right">
                                     <span
                                         class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold 
-                                                                                                                            @if($item['total_poin'] >= 50) bg-red-500/20 text-red-400 border border-red-500/30
-                                                                                                                            @elseif($item['total_poin'] >= 25) bg-amber-500/20 text-amber-400 border border-amber-500/30
-                                                                                                                            @else bg-slate-500/20 text-slate-400 border border-slate-500/30 @endif">
+                                                                                                                                        @if($item['total_poin'] >= 50) bg-red-500/20 text-red-400 border border-red-500/30
+                                                                                                                                        @elseif($item['total_poin'] >= 25) bg-amber-500/20 text-amber-400 border border-amber-500/30
+                                                                                                                                        @else bg-slate-500/20 text-slate-400 border border-slate-500/30 @endif">
                                         {{ $item['total_poin'] }} poin
                                     </span>
                                 </div>
@@ -381,235 +389,241 @@
                     </div>
                 @else
                     <!-- Weekday Attendance Chart (Mon-Fri) -->
-                            <div class="p-6">
-                                <div class="flex items-end justify-between h-48 gap-4">
-                                    @foreach($weekdayData ?? [] as $data)
-                                        <div class="flex-1 flex flex-col items-center gap-2">
-                                            @php
-                                                $total = $totalStudents > 0 ? $totalStudents : 1;
-                                                $presentPercent = ($data['present'] / $total) * 100;
-                                                $absentPercent = ($data['absent'] / $total) * 100;
-                                            @endphp
-                                            <div class="w-full flex flex-col gap-0.5" style="height: 100%">
-                                                <div class="flex-1 flex flex-col justify-end">
-                                                    @if($data['present'] > 0)
-                                                        <div class="w-full bg-gradient-to-t from-emerald-600 to-teal-500 rounded-t-lg transition-all hover:opacity-80"
-                                                            style="height: {{ $presentPercent }}%" title="Hadir: {{ $data['present'] }}">
-                                                        </div>
-                                                    @endif
-                                                    @if($data['absent'] > 0)
-                                                        <div class="w-full bg-rose-500 {{ $data['present'] == 0 ? 'rounded-t-lg' : '' }} rounded-b-lg transition-all hover:opacity-80"
-                                                            style="height: {{ $absentPercent }}%" title="Tidak Hadir: {{ $data['absent'] }}">
-                                                        </div>
-                                                    @endif
+                    <div class="p-6">
+                        <div class="flex items-end justify-between h-48 gap-4">
+                            @foreach($weekdayData ?? [] as $data)
+                                <div class="flex-1 flex flex-col items-center gap-2">
+                                    @php
+                                        $total = $totalStudents > 0 ? $totalStudents : 1;
+                                        $presentPercent = ($data['present'] / $total) * 100;
+                                        $absentPercent = ($data['absent'] / $total) * 100;
+                                    @endphp
+                                    <div class="w-full flex flex-col gap-0.5" style="height: 100%">
+                                        <div class="flex-1 flex flex-col justify-end">
+                                            @if($data['present'] > 0)
+                                                <div class="w-full bg-gradient-to-t from-emerald-600 to-teal-500 rounded-t-lg transition-all hover:opacity-80"
+                                                    style="height: {{ $presentPercent }}%" title="Hadir: {{ $data['present'] }}">
                                                 </div>
-                                            </div>
-                                            <div class="text-center">
-                                                <span class="text-xs text-slate-400 block">{{ $data['day'] }}</span>
-                                                <span class="text-xs text-emerald-400 font-medium">{{ $data['present'] }}</span>
-                                            </div>
+                                            @endif
+                                            @if($data['absent'] > 0)
+                                                <div class="w-full bg-rose-500 {{ $data['present'] == 0 ? 'rounded-t-lg' : '' }} rounded-b-lg transition-all hover:opacity-80"
+                                                    style="height: {{ $absentPercent }}%" title="Tidak Hadir: {{ $data['absent'] }}">
+                                                </div>
+                                            @endif
                                         </div>
-                                    @endforeach
+                                    </div>
+                                    <div class="text-center">
+                                        <span class="text-xs text-slate-400 block">{{ $data['day'] }}</span>
+                                        <span class="text-xs text-emerald-400 font-medium">{{ $data['present'] }}</span>
+                                    </div>
                                 </div>
-                            </div>
+                            @endforeach
+                        </div>
+                    </div>
                 @endif
-                </div>
             </div>
+        </div>
 
-            <!-- Weekly Chart -->
-            <div class="rounded-2xl bg-slate-900/50 border border-slate-800/50 overflow-hidden">
-                <div class="p-6 border-b border-slate-800/50">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-semibold text-white">Statistik Kehadiran 7 Hari Terakhir</h3>
-                        <div class="flex items-center gap-4">
-                            <div class="flex items-center gap-2">
-                                <span class="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-500"></span>
-                                <span class="text-xs text-slate-400">Hadir</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="w-3 h-3 rounded-full bg-rose-500"></span>
-                                <span class="text-xs text-slate-400">Tidak Hadir</span>
-                            </div>
+        <!-- Weekly Chart -->
+        <div class="rounded-2xl bg-slate-900/50 border border-slate-800/50 overflow-hidden">
+            <div class="p-6 border-b border-slate-800/50">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-white">Statistik Kehadiran 7 Hari Terakhir</h3>
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-500"></span>
+                            <span class="text-xs text-slate-400">Hadir</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-rose-500"></span>
+                            <span class="text-xs text-slate-400">Tidak Hadir</span>
                         </div>
                     </div>
                 </div>
-                <div class="p-6">
-                    <!-- Bar Chart -->
-                    <div class="flex items-end justify-between h-48 gap-4">
-                        @foreach($weeklyData as $data)
-                            <div class="flex-1 flex flex-col items-center gap-2">
-                                @php
-                                    $total = $totalStudents > 0 ? $totalStudents : 1;
-                                    $presentPercent = ($data['present'] / $total) * 100;
-                                    $absentPercent = ($data['absent'] / $total) * 100;
-                                @endphp
-                                <div class="w-full flex flex-col gap-0.5" style="height: 100%">
-                                    <div class="flex-1 flex flex-col justify-end">
-                                        @if($data['present'] > 0)
-                                            <div class="w-full bg-gradient-to-t from-blue-600 to-purple-500 rounded-t-lg transition-all hover:opacity-80"
-                                                style="height: {{ $presentPercent }}%" title="Hadir: {{ $data['present'] }}">
-                                            </div>
-                                        @endif
-                                        @if($data['absent'] > 0)
-                                            <div class="w-full bg-rose-500 {{ $data['present'] == 0 ? 'rounded-t-lg' : '' }} rounded-b-lg transition-all hover:opacity-80"
-                                                style="height: {{ $absentPercent }}%" title="Tidak Hadir: {{ $data['absent'] }}">
-                                            </div>
-                                        @endif
-                                    </div>
-                                </div>
-                                <div class="text-center">
-                                    <span class="text-xs text-slate-400 block">{{ $data['day'] }}</span>
-                                    <span class="text-xs text-slate-500">{{ $data['present'] }}</span>
+            </div>
+            <div class="p-6">
+                <!-- Bar Chart -->
+                <div class="flex items-end justify-between h-48 gap-4">
+                    @foreach($weeklyData as $data)
+                        <div class="flex-1 flex flex-col items-center gap-2">
+                            @php
+                                $total = $totalStudents > 0 ? $totalStudents : 1;
+                                $presentPercent = ($data['present'] / $total) * 100;
+                                $absentPercent = ($data['absent'] / $total) * 100;
+                            @endphp
+                            <div class="w-full flex flex-col gap-0.5" style="height: 100%">
+                                <div class="flex-1 flex flex-col justify-end">
+                                    @if($data['present'] > 0)
+                                        <div class="w-full bg-gradient-to-t from-blue-600 to-purple-500 rounded-t-lg transition-all hover:opacity-80"
+                                            style="height: {{ $presentPercent }}%" title="Hadir: {{ $data['present'] }}">
+                                        </div>
+                                    @endif
+                                    @if($data['absent'] > 0)
+                                        <div class="w-full bg-rose-500 {{ $data['present'] == 0 ? 'rounded-t-lg' : '' }} rounded-b-lg transition-all hover:opacity-80"
+                                            style="height: {{ $absentPercent }}%" title="Tidak Hadir: {{ $data['absent'] }}">
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
-                        @endforeach
-                    </div>
+                            <div class="text-center">
+                                <span class="text-xs text-slate-400 block">{{ $data['day'] }}</span>
+                                <span class="text-xs text-slate-500">{{ $data['present'] }}</span>
+                            </div>
+                        </div>
+                    @endforeach
                 </div>
             </div>
+        </div>
 
-            @if(!isset($isWaliKelas) || !$isWaliKelas)
-                <!-- Admin Dashboard: Student Issues Grid -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <!-- Siswa Terlambat -->
-                    <div class="rounded-2xl bg-slate-900/50 border border-slate-800/50 overflow-hidden">
-                        <div class="p-6 border-b border-slate-800/50">
-                            <div class="flex items-center justify-between">
-                                <h3 class="text-lg font-semibold text-white">Siswa Terlambat</h3>
+        @if(!isset($isWaliKelas) || !$isWaliKelas)
+            <!-- Admin Dashboard: Student Issues Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Siswa Terlambat -->
+                <div class="rounded-2xl bg-slate-900/50 border border-slate-800/50 overflow-hidden">
+                    <div class="p-6 border-b border-slate-800/50">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold text-white">Siswa Terlambat</h3>
+                            @if(session('user_level') !== 'guru')
                                 <a href="{{ route('admin.kesiswaan.siswa-terlambat.index') }}"
                                     class="text-sm text-blue-400 hover:text-blue-300 transition-colors">
                                     Lihat semua →
                                 </a>
-                            </div>
-                        </div>
-                        <div class="divide-y divide-slate-800/50 h-[400px] overflow-y-auto custom-scrollbar">
-                            @forelse($siswaTerlambat ?? [] as $terlambat)
-                                <div class="flex items-center gap-4 p-4 hover:bg-slate-800/30 transition-colors">
-                                    <div
-                                        class="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-600 to-orange-700 flex items-center justify-center text-white font-medium text-sm flex-shrink-0">
-                                        @if($terlambat->student)
-                                            {{ strtoupper(substr($terlambat->student->name, 0, 1)) }}{{ strtoupper(substr(explode(' ', $terlambat->student->name)[1] ?? '', 0, 1)) }}
-                                        @else
-                                            ?
-                                        @endif
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-medium text-white truncate">
-                                            {{ $terlambat->student->name ?? 'Unknown' }}
-                                        </p>
-                                        <p class="text-xs text-slate-400">
-                                            {{ $terlambat->student->kelas->nm_kls ?? '-' }} •
-                                            <span class="text-amber-400">{{ $terlambat->jam_datang }}</span>
-                                        </p>
-                                    </div>
-                                    <span
-                                        class="px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 flex-shrink-0">
-                                        +{{ $terlambat->keterlambatan_menit }} m
-                                    </span>
-                                </div>
-                            @empty
-                                <div class="p-8 text-center">
-                                    <p class="text-slate-400 text-sm">Tidak ada siswa terlambat</p>
-                                </div>
-                            @endforelse
+                            @endif
                         </div>
                     </div>
+                    <div class="divide-y divide-slate-800/50 h-[400px] overflow-y-auto custom-scrollbar">
+                        @forelse($siswaTerlambat ?? [] as $terlambat)
+                            <div class="flex items-center gap-4 p-4 hover:bg-slate-800/30 transition-colors">
+                                <div
+                                    class="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-600 to-orange-700 flex items-center justify-center text-white font-medium text-sm flex-shrink-0">
+                                    @if($terlambat->student)
+                                        {{ strtoupper(substr($terlambat->student->name, 0, 1)) }}{{ strtoupper(substr(explode(' ', $terlambat->student->name)[1] ?? '', 0, 1)) }}
+                                    @else
+                                        ?
+                                    @endif
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-white truncate">
+                                        {{ $terlambat->student->name ?? 'Unknown' }}
+                                    </p>
+                                    <p class="text-xs text-slate-400">
+                                        {{ $terlambat->student->kelas->nm_kls ?? '-' }} •
+                                        <span class="text-amber-400">{{ $terlambat->jam_datang }}</span>
+                                    </p>
+                                </div>
+                                <span
+                                    class="px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 flex-shrink-0">
+                                    +{{ $terlambat->keterlambatan_menit }} m
+                                </span>
+                            </div>
+                        @empty
+                            <div class="p-8 text-center">
+                                <p class="text-slate-400 text-sm">Tidak ada siswa terlambat</p>
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
 
-                    <!-- Siswa Konseling -->
-                    <div class="rounded-2xl bg-slate-900/50 border border-slate-800/50 overflow-hidden">
-                        <div class="p-6 border-b border-slate-800/50">
-                            <div class="flex items-center justify-between">
-                                <h3 class="text-lg font-semibold text-white">Siswa Konseling</h3>
+                <!-- Siswa Konseling -->
+                <div class="rounded-2xl bg-slate-900/50 border border-slate-800/50 overflow-hidden">
+                    <div class="p-6 border-b border-slate-800/50">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold text-white">Siswa Konseling</h3>
+                            @if(session('user_level') !== 'guru')
                                 <a href="{{ route('admin.kesiswaan.konseling.index') }}"
                                     class="text-sm text-blue-400 hover:text-blue-300 transition-colors">
                                     Lihat semua →
                                 </a>
-                            </div>
-                        </div>
-                        <div class="divide-y divide-slate-800/50 h-[400px] overflow-y-auto custom-scrollbar">
-                            @forelse($siswaKonseling ?? [] as $konseling)
-                                <div class="flex items-center gap-4 p-4 hover:bg-slate-800/30 transition-colors">
-                                    <div
-                                        class="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-600 to-blue-700 flex items-center justify-center text-white font-medium text-sm flex-shrink-0">
-                                        @if($konseling->student)
-                                            {{ strtoupper(substr($konseling->student->name, 0, 1)) }}{{ strtoupper(substr(explode(' ', $konseling->student->name)[1] ?? '', 0, 1)) }}
-                                        @else
-                                            ?
-                                        @endif
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-medium text-white truncate">
-                                            {{ $konseling->student->name ?? 'Unknown' }}
-                                        </p>
-                                        <p class="text-xs text-slate-300 truncate" title="{{ $konseling->permasalahan }}">
-                                            {{ $konseling->permasalahan }}
-                                        </p>
-                                        <p class="text-xs text-slate-500">
-                                            {{ $konseling->student->kelas->nm_kls ?? '-' }}
-                                        </p>
-                                    </div>
-                                    <div class="flex-shrink-0">
-                                        <span
-                                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border {{ $konseling->status_badge }}">
-                                            {{ $konseling->status_label }}
-                                        </span>
-                                    </div>
-                                </div>
-                            @empty
-                                <div class="p-8 text-center">
-                                    <p class="text-slate-400 text-sm">Tidak ada data konseling</p>
-                                </div>
-                            @endforelse
+                            @endif
                         </div>
                     </div>
+                    <div class="divide-y divide-slate-800/50 h-[400px] overflow-y-auto custom-scrollbar">
+                        @forelse($siswaKonseling ?? [] as $konseling)
+                            <div class="flex items-center gap-4 p-4 hover:bg-slate-800/30 transition-colors">
+                                <div
+                                    class="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-600 to-blue-700 flex items-center justify-center text-white font-medium text-sm flex-shrink-0">
+                                    @if($konseling->student)
+                                        {{ strtoupper(substr($konseling->student->name, 0, 1)) }}{{ strtoupper(substr(explode(' ', $konseling->student->name)[1] ?? '', 0, 1)) }}
+                                    @else
+                                        ?
+                                    @endif
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-white truncate">
+                                        {{ $konseling->student->name ?? 'Unknown' }}
+                                    </p>
+                                    <p class="text-xs text-slate-300 truncate" title="{{ $konseling->permasalahan }}">
+                                        {{ $konseling->permasalahan }}
+                                    </p>
+                                    <p class="text-xs text-slate-500">
+                                        {{ $konseling->student->kelas->nm_kls ?? '-' }}
+                                    </p>
+                                </div>
+                                <div class="flex-shrink-0">
+                                    <span
+                                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border {{ $konseling->status_badge }}">
+                                        {{ $konseling->status_label }}
+                                    </span>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="p-8 text-center">
+                                <p class="text-slate-400 text-sm">Tidak ada data konseling</p>
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
 
-                    <!-- Pelanggaran Siswa -->
-                    <div class="rounded-2xl bg-slate-900/50 border border-slate-800/50 overflow-hidden">
-                        <div class="p-6 border-b border-slate-800/50">
-                            <div class="flex items-center justify-between">
-                                <h3 class="text-lg font-semibold text-white">Pelanggaran Siswa</h3>
+                <!-- Pelanggaran Siswa -->
+                <div class="rounded-2xl bg-slate-900/50 border border-slate-800/50 overflow-hidden">
+                    <div class="p-6 border-b border-slate-800/50">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold text-white">Pelanggaran Siswa</h3>
+                            @if(session('user_level') !== 'guru')
                                 <a href="{{ route('admin.kesiswaan.pelanggaran.index') }}"
                                     class="text-sm text-blue-400 hover:text-blue-300 transition-colors">
                                     Lihat semua →
                                 </a>
-                            </div>
-                        </div>
-                        <div class="divide-y divide-slate-800/50 h-[400px] overflow-y-auto custom-scrollbar">
-                            @forelse($pelanggaranSiswa ?? [] as $item)
-                                <div class="flex items-center gap-4 p-4 hover:bg-slate-800/30 transition-colors">
-                                    <div
-                                        class="w-10 h-10 rounded-lg bg-gradient-to-br from-rose-600 to-red-700 flex items-center justify-center text-white font-medium text-sm flex-shrink-0">
-                                        {{ strtoupper(substr($item['student']->name ?? '?', 0, 1)) }}
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-medium text-white truncate">
-                                            {{ $item['student']->name ?? 'Unknown' }}
-                                        </p>
-                                        <p class="text-xs text-slate-300 truncate"
-                                            title="{{ implode(', ', $item['jenis_pelanggaran']) }}">
-                                            {{ implode(', ', $item['jenis_pelanggaran']) }}
-                                        </p>
-                                        <p class="text-xs text-slate-500">
-                                            {{ $item['student']->kelas->nm_kls ?? '-' }} • {{ $item['jumlah_pelanggaran'] }} x
-                                        </p>
-                                    </div>
-                                    <div class="text-right flex-shrink-0">
-                                        <span
-                                            class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold 
-                                                                                            @if($item['total_poin'] >= 50) bg-red-500/20 text-red-400 border border-red-500/30
-                                                                                            @elseif($item['total_poin'] >= 25) bg-amber-500/20 text-amber-400 border border-amber-500/30
-                                                                                            @else bg-slate-500/20 text-slate-400 border border-slate-500/30 @endif">
-                                            {{ $item['total_poin'] }} Poin
-                                        </span>
-                                    </div>
-                                </div>
-                            @empty
-                                <div class="p-8 text-center">
-                                    <p class="text-slate-400 text-sm">Tidak ada pelanggaran</p>
-                                </div>
-                            @endforelse
+                            @endif
                         </div>
                     </div>
+                    <div class="divide-y divide-slate-800/50 h-[400px] overflow-y-auto custom-scrollbar">
+                        @forelse($pelanggaranSiswa ?? [] as $item)
+                            <div class="flex items-center gap-4 p-4 hover:bg-slate-800/30 transition-colors">
+                                <div
+                                    class="w-10 h-10 rounded-lg bg-gradient-to-br from-rose-600 to-red-700 flex items-center justify-center text-white font-medium text-sm flex-shrink-0">
+                                    {{ strtoupper(substr($item['student']->name ?? '?', 0, 1)) }}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-white truncate">
+                                        {{ $item['student']->name ?? 'Unknown' }}
+                                    </p>
+                                    <p class="text-xs text-slate-300 truncate"
+                                        title="{{ implode(', ', $item['jenis_pelanggaran']) }}">
+                                        {{ implode(', ', $item['jenis_pelanggaran']) }}
+                                    </p>
+                                    <p class="text-xs text-slate-500">
+                                        {{ $item['student']->kelas->nm_kls ?? '-' }} • {{ $item['jumlah_pelanggaran'] }} x
+                                    </p>
+                                </div>
+                                <div class="text-right flex-shrink-0">
+                                    <span
+                                        class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold 
+                                                                                                        @if($item['total_poin'] >= 50) bg-red-500/20 text-red-400 border border-red-500/30
+                                                                                                        @elseif($item['total_poin'] >= 25) bg-amber-500/20 text-amber-400 border border-amber-500/30
+                                                                                                        @else bg-slate-500/20 text-slate-400 border border-slate-500/30 @endif">
+                                        {{ $item['total_poin'] }} Poin
+                                    </span>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="p-8 text-center">
+                                <p class="text-slate-400 text-sm">Tidak ada pelanggaran</p>
+                            </div>
+                        @endforelse
+                    </div>
                 </div>
-            @endif
-        </div>
+            </div>
+        @endif
+    </div>
 @endsection

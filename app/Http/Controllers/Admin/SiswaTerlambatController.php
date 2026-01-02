@@ -59,22 +59,22 @@ class SiswaTerlambatController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'student_id' => 'required|exists:students,id',
+            'student_ids' => 'required|array|min:1',
+            'student_ids.*' => 'exists:students,id',
             'tanggal' => 'required|date',
             'jam_datang' => 'required',
             'jam_masuk_seharusnya' => 'required',
-            'alasan' => 'nullable|string|max:255',
+            'alasan' => 'nullable|array',
+            'alasan.*' => 'nullable|string|max:255',
             'keterangan' => 'nullable|string',
             'status' => 'required|in:pending,diproses,selesai',
         ], [
-            'student_id.required' => 'Siswa wajib dipilih',
+            'student_ids.required' => 'Pilih minimal 1 siswa',
+            'student_ids.min' => 'Pilih minimal 1 siswa',
             'tanggal.required' => 'Tanggal wajib diisi',
             'jam_datang.required' => 'Jam datang wajib diisi',
             'jam_masuk_seharusnya.required' => 'Jam masuk seharusnya wajib diisi',
         ]);
-
-        // Get student data
-        $student = Student::findOrFail($request->student_id);
 
         // Calculate lateness
         $jamMasuk = strtotime($request->jam_masuk_seharusnya);
@@ -84,28 +84,42 @@ class SiswaTerlambatController extends Controller
         // Create checktime from tanggal + jam_datang
         $checktime = $request->tanggal . ' ' . $request->jam_datang . ':00';
 
-        // Save to siswa_terlambat table
-        SiswaTerlambat::create([
-            'student_id' => $request->student_id,
-            'tanggal' => $request->tanggal,
-            'jam_datang' => $request->jam_datang,
-            'jam_masuk_seharusnya' => $request->jam_masuk_seharusnya,
-            'keterlambatan_menit' => $keterlambatan,
-            'alasan' => $request->alasan,
-            'keterangan' => $request->keterangan,
-            'status' => $request->status,
-            'created_by' => Session::get('user_id'),
-        ]);
+        // Get alasan array
+        $alasanList = $request->alasan ?? [];
 
-        // Also save to attendances table
-        \App\Models\Attendance::create([
-            'nis' => $student->nis,
-            'checktime' => $checktime,
-            'checktype' => 0, // Check-in
-        ]);
+        $count = 0;
+        foreach ($request->student_ids as $studentId) {
+            // Get student data
+            $student = Student::findOrFail($studentId);
+
+            // Get alasan for this specific student
+            $alasan = $alasanList[$studentId] ?? null;
+
+            // Save to siswa_terlambat table
+            SiswaTerlambat::create([
+                'student_id' => $studentId,
+                'tanggal' => $request->tanggal,
+                'jam_datang' => $request->jam_datang,
+                'jam_masuk_seharusnya' => $request->jam_masuk_seharusnya,
+                'keterlambatan_menit' => $keterlambatan,
+                'alasan' => $alasan,
+                'keterangan' => $request->keterangan,
+                'status' => $request->status,
+                'created_by' => Session::get('user_id'),
+            ]);
+
+            // Also save to attendances table
+            \App\Models\Attendance::create([
+                'nis' => $student->nis,
+                'checktime' => $checktime,
+                'checktype' => 0, // Check-in
+            ]);
+
+            $count++;
+        }
 
         return redirect()->route('admin.kesiswaan.siswa-terlambat.index')
-            ->with('success', 'Data siswa terlambat berhasil ditambahkan');
+            ->with('success', "Data {$count} siswa terlambat berhasil ditambahkan");
     }
 
     /**

@@ -60,6 +60,19 @@
                         </select>
                     </div>
 
+                    <!-- Kelas Filter -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Kelas</label>
+                        <select name="kelas_id" onchange="this.form.submit()"
+                            class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:border-blue-500">
+                            <option value="">Semua Kelas</option>
+                            @foreach($kelasList as $k)
+                                <option value="{{ $k->id }}" {{ ($kelasId ?? '') == $k->id ? 'selected' : '' }}>{{ $k->nm_kls }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
 
                 </div>
             </form>

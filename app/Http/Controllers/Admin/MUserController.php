@@ -55,14 +55,56 @@ class MUserController extends Controller
     }
 
     /**
+     * Toggle status for guru user (AJAX).
+     */
+    public function toggleStatusGuru(MUser $user)
+    {
+        $newStatus = !$user->is_active;
+        $user->update(['is_active' => $newStatus]);
+
+        // Also update guru record if exists
+        if ($user->guru) {
+            $user->guru->update(['is_active' => $newStatus]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'is_active' => $newStatus,
+            'message' => 'Status berhasil diperbarui'
+        ]);
+    }
+
+    /**
+     * Reset password to username for guru user (AJAX).
+     */
+    public function resetPasswordToNip(MUser $user)
+    {
+        // Reset password to username
+        $user->update(['password' => $user->username]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password berhasil direset ke Username'
+        ]);
+    }
+
+    /**
      * Display a listing of the resource (Siswa only).
      */
     public function siswa(Request $request)
     {
-        $perPage = $request->get('perPage', 10);
+        $perPage = $request->get('perPage', 36);
         $search = $request->get('search');
+        $kelasId = $request->get('kelas_id');
 
-        $query = MUser::with('roles')->where('level', 'siswa');
+        $query = MUser::with(['roles', 'student.kelas'])->where('level', 'siswa');
+
+        // Filter by kelas
+        if ($kelasId) {
+            $query->whereHas('student', function ($q) use ($kelasId) {
+                $q->where('kelas_id', $kelasId);
+            });
+        }
 
         // Server-side search
         if ($search) {
@@ -71,11 +113,23 @@ class MUserController extends Controller
                     ->orWhere('username', 'like', "%{$search}%")
                     ->orWhereHas('roles', function ($roleQuery) use ($search) {
                         $roleQuery->where('nama_role', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('student', function ($studentQuery) use ($search) {
+                        $studentQuery->where('nisn', 'like', "%{$search}%")
+                            ->orWhere('nis', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('student.kelas', function ($kelasQuery) use ($search) {
+                        $kelasQuery->where('nm_kls', 'like', "%{$search}%");
                     });
             });
         }
 
-        $query->orderBy('name');
+        // Order by kelas then by name using join
+        $query->select('users.*')
+            ->leftJoin('students', 'users.id', '=', 'students.user_id')
+            ->leftJoin('kelas', 'students.kelas_id', '=', 'kelas.id')
+            ->orderBy('kelas.nm_kls', 'asc')
+            ->orderBy('users.name', 'asc');
 
         if ($perPage === 'all') {
             $users = $query->get();
@@ -90,12 +144,112 @@ class MUserController extends Controller
         }
 
         $roles = Role::active()->orderBy('nama_role')->get();
+        $kelasList = \App\Models\Kelas::orderBy('nm_kls')->get();
 
         if ($request->ajax()) {
             return view('admin.users.partials.siswa_table', compact('users'))->render();
         }
 
-        return view('admin.users.siswa_index', compact('users', 'roles'));
+        return view('admin.users.siswa_index', compact('users', 'roles', 'kelasList'));
+    }
+
+    /**
+     * Bulk update status for siswa users.
+     */
+    public function bulkUpdateStatusSiswa(Request $request)
+    {
+        $request->validate([
+            'user_ids' => 'required|array|min:1',
+            'user_ids.*' => 'exists:users,id',
+            'status' => 'required|in:active,inactive',
+        ], [
+            'user_ids.required' => 'Pilih minimal satu siswa',
+            'user_ids.min' => 'Pilih minimal satu siswa',
+        ]);
+
+        $isActive = $request->status === 'active';
+        $updated = MUser::whereIn('id', $request->user_ids)
+            ->where('level', 'siswa')
+            ->update(['is_active' => $isActive]);
+
+        // Also update student records
+        \App\Models\Student::whereIn('user_id', $request->user_ids)
+            ->update(['is_active' => $isActive]);
+
+        $statusText = $isActive ? 'diaktifkan' : 'dinonaktifkan';
+        return redirect()->route('admin.users.siswa')
+            ->with('success', "{$updated} user siswa berhasil {$statusText}");
+    }
+
+    /**
+     * Toggle status for single user (AJAX).
+     */
+    public function toggleStatus(MUser $user)
+    {
+        $newStatus = !$user->is_active;
+        $user->update(['is_active' => $newStatus]);
+
+        // Also update student record if exists
+        if ($user->student) {
+            $user->student->update(['is_active' => $newStatus]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'is_active' => $newStatus,
+            'message' => 'Status berhasil diperbarui'
+        ]);
+    }
+
+    /**
+     * Reset password to NISN for siswa user (AJAX).
+     */
+    public function resetPasswordToNisn(MUser $user)
+    {
+        // Get student data with NISN
+        $student = $user->student;
+
+        if (!$student || !$student->nisn) {
+            return response()->json([
+                'success' => false,
+                'message' => 'NISN siswa tidak ditemukan'
+            ], 400);
+        }
+
+        // Reset password to NISN
+        $user->update(['password' => $student->nisn]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password berhasil direset ke NISN'
+        ]);
+    }
+
+    /**
+     * Get users by kelas for AJAX.
+     */
+    public function getUsersByKelas($kelasId)
+    {
+        $users = MUser::with(['student.kelas'])
+            ->where('level', 'siswa')
+            ->whereHas('student', function ($query) use ($kelasId) {
+                $query->where('kelas_id', $kelasId);
+            })
+            ->orderBy('name')
+            ->get(['id', 'name', 'username', 'is_active']);
+
+        // Add kelas info
+        $users = $users->map(function ($user) {
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'username' => $user->username,
+                'is_active' => $user->is_active,
+                'kelas' => $user->student->kelas->nm_kls ?? '-',
+            ];
+        });
+
+        return response()->json($users);
     }
 
     /**

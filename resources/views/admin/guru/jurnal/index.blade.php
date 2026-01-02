@@ -153,7 +153,7 @@
                                         <tr class="hover:bg-slate-800/30 transition-colors">
                                             <td class="px-4 py-2 text-sm text-slate-400">{{ $idx + 1 }}</td>
                                             <td class="px-4 py-2 text-sm text-slate-300">
-                                                {{ \Carbon\Carbon::parse($jurnal->tanggal)->format('d/m/Y') }}
+                                                {{ \Carbon\Carbon::parse($jurnal->tanggal)->translatedFormat('D, d M Y') }}
                                             </td>
                                             <td class="px-4 py-2 text-sm text-slate-300">{{ $jurnal->jam_ke ?? '-' }}</td>
                                             <td class="px-4 py-2 text-sm text-slate-300">{{ $jurnal->tmke ?? '-' }}</td>

@@ -109,12 +109,7 @@
                 <td style="padding-left: 20px;"><strong>Hari/Tanggal</strong></td>
                 <td>: {{ \Carbon\Carbon::parse($tanggal)->locale('id')->translatedFormat('l, d F Y') }}</td>
             </tr>
-            <tr>
-                <td><strong>Wali Kelas</strong></td>
-                <td>: {{ $walas && $walas->guru ? $walas->guru->nama : '_______________________' }}</td>
-                <td style="padding-left: 20px;"><strong>Jumlah Siswa</strong></td>
-                <td>: {{ $students->count() }} siswa</td>
-            </tr>
+
         </table>
     </div>
 
@@ -162,6 +157,12 @@
     </table>
 
     <div class="footer">
+        <div style="margin-bottom: 10px;">
+            <strong>Jumlah Siswa:</strong> {{ $students->count() }} siswa &nbsp;&nbsp;|&nbsp;&nbsp;
+            <strong>L (Laki-laki):</strong> {{ $students->where('jen_kel', 'L')->count() }} siswa
+            &nbsp;&nbsp;|&nbsp;&nbsp;
+            <strong>P (Perempuan):</strong> {{ $students->where('jen_kel', 'P')->count() }} siswa
+        </div>
         <table class="footer-table">
             <tr>
                 <td style="width: 50%; text-align: left;">
@@ -190,7 +191,9 @@
                 </td>
                 <td style="width: 50%;">
                     <div class="sign-box">
-                        <p>{{ $settings->city ?? 'Seputih Agung' }}, {{ \Carbon\Carbon::parse($tanggal)->locale('id')->translatedFormat('d F Y') }}</p>
+                        <p>{{ $settings->city ?? 'Seputih Agung' }},
+                            {{ \Carbon\Carbon::parse($tanggal)->locale('id')->translatedFormat('d F Y') }}
+                        </p>
                         <br>
                         <p><strong>Wali Kelas</strong></p>
                         <br><br><br><br>
