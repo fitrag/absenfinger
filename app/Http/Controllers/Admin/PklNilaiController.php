@@ -69,77 +69,45 @@ class PklNilaiController extends Controller
             $tpId = $activeTp->id;
         }
 
-        // Query PKL records (Students) that have assessments
-        // Soft Skills
-        $softQuery = Pkl::whereHas('softNilai')
-            ->with(['student.kelas', 'dudi', 'softNilai.komponenSoft', 'tahunPelajaran'])
-            ->join('dudis', 'pkls.dudi_id', '=', 'dudis.id')
-            ->select('pkls.*') // Avoid column collision
-            ->orderBy('dudis.nama', 'asc')
-            ->orderBy('pkls.updated_at', 'desc');
-
-        // Hard Skills
-        $hardQuery = Pkl::whereHas('hardNilai')
-            ->with(['student.kelas', 'dudi', 'hardNilai.komponenHard', 'tahunPelajaran'])
+        // Query ALL PKL records (Students) - including those without assessments
+        // Base query for all tabs - show all PKL students
+        $baseQuery = Pkl::with(['student.kelas', 'dudi', 'softNilai.komponenSoft', 'hardNilai.komponenHard', 'wirausahaNilai.komponenWirausaha', 'tahunPelajaran'])
             ->join('dudis', 'pkls.dudi_id', '=', 'dudis.id')
             ->select('pkls.*')
             ->orderBy('dudis.nama', 'asc')
-            ->orderBy('pkls.updated_at', 'desc');
-
-        // Wirausaha
-        $wirausahaQuery = Pkl::whereHas('wirausahaNilai')
-            ->with(['student.kelas', 'dudi', 'wirausahaNilai.komponenWirausaha', 'tahunPelajaran'])
-            ->join('dudis', 'pkls.dudi_id', '=', 'dudis.id')
-            ->select('pkls.*')
-            ->orderBy('dudis.nama', 'asc')
-            ->orderBy('pkls.updated_at', 'desc');
+            ->orderBy('pkls.student_id', 'asc');
 
         // Filter by TP
         if ($tpId) {
-            $softQuery->where('pkls.tp_id', $tpId);
-            $hardQuery->where('pkls.tp_id', $tpId);
-            $wirausahaQuery->where('pkls.tp_id', $tpId);
+            $baseQuery->where('pkls.tp_id', $tpId);
         }
 
         if ($dudiId) {
-            $softQuery->where('pkls.dudi_id', $dudiId);
-            $hardQuery->where('pkls.dudi_id', $dudiId);
-            $wirausahaQuery->where('pkls.dudi_id', $dudiId);
+            $baseQuery->where('pkls.dudi_id', $dudiId);
         }
 
         if ($kelasId) {
-            $softQuery->whereHas('student', function ($q) use ($kelasId) {
-                $q->where('kelas_id', $kelasId);
-            });
-            $hardQuery->whereHas('student', function ($q) use ($kelasId) {
-                $q->where('kelas_id', $kelasId);
-            });
-            $wirausahaQuery->whereHas('student', function ($q) use ($kelasId) {
+            $baseQuery->whereHas('student', function ($q) use ($kelasId) {
                 $q->where('kelas_id', $kelasId);
             });
         }
 
         if ($search) {
-            $searchFn = function ($q) use ($search) {
+            $baseQuery->whereHas('student', function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('nis', 'like', "%{$search}%");
-            };
-            $softQuery->whereHas('student', $searchFn);
-            $hardQuery->whereHas('student', $searchFn);
-            $wirausahaQuery->whereHas('student', $searchFn);
+            });
         }
 
-        $softNilaiList = $perPage == 'all'
-            ? $softQuery->get()
-            : $softQuery->paginate((int) $perPage, ['*'], 'soft_page');
+        // Get all PKL data (used for all tabs)
+        $allPklList = $perPage == 'all'
+            ? $baseQuery->get()
+            : $baseQuery->paginate((int) $perPage);
 
-        $hardNilaiList = $perPage == 'all'
-            ? $hardQuery->get()
-            : $hardQuery->paginate((int) $perPage, ['*'], 'hard_page');
-
-        $wirausahaNilaiList = $perPage == 'all'
-            ? $wirausahaQuery->get()
-            : $wirausahaQuery->paginate((int) $perPage, ['*'], 'wirausaha_page');
+        // For backward compatibility, assign to all three list variables
+        $softNilaiList = $allPklList;
+        $hardNilaiList = $allPklList;
+        $wirausahaNilaiList = $allPklList;
 
         $kelasList = Kelas::orderBy('nm_kls')->get();
         // Students should ideally be those who have PKL, but keeping generic for now or filtering in view?

@@ -174,23 +174,29 @@
                                 </tr>
                             @endif
                             <tr class="hover:bg-slate-800/30 transition-colors">
-                                <td class="px-4 py-3 text-sm text-slate-400">{{ $loop->iteration }}</td>
-                                <td class="px-4 py-3">
+                                <td class="px-4 py-2 text-sm text-slate-400">{{ $loop->iteration }}</td>
+                                <td class="px-4 py-2">
                                     <p class="text-sm font-medium text-white">{{ $pkl->student->name ?? '-' }}</p>
                                     <p class="text-xs text-slate-400">{{ $pkl->student->nis ?? '-' }}</p>
                                 </td>
-                                <td class="px-4 py-3 text-sm text-slate-300">{{ $pkl->student->kelas->nm_kls ?? '-' }}</td>
-                                <td class="px-4 py-3 text-center">
-                                    <span
-                                        class="inline-flex items-center px-2.5 py-1 rounded-lg text-sm font-semibold
-                                                                                                                                                        {{ ($pkl->softNilai->avg('nilai') ?? 0) >= 80 ? 'bg-emerald-500/20 text-emerald-400' : (($pkl->softNilai->avg('nilai') ?? 0) >= 60 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400') }}">
-                                        {{ number_format($pkl->softNilai->avg('nilai') ?? 0, 1) }}
-                                    </span>
+                                <td class="px-4 py-2 text-sm text-slate-300">{{ $pkl->student->kelas->nm_kls ?? '-' }}</td>
+                                <td class="px-4 py-2 text-center">
+                                    @if($pkl->softNilai->count() > 0)
+                                        <span
+                                            class="inline-flex items-center px-2.5 py-1 rounded-lg text-sm font-semibold
+                                            {{ ($pkl->softNilai->avg('nilai') ?? 0) >= 80 ? 'bg-emerald-500/20 text-emerald-400' : (($pkl->softNilai->avg('nilai') ?? 0) >= 60 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400') }}">
+                                            {{ number_format($pkl->softNilai->avg('nilai') ?? 0, 1) }}
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-500/20 text-slate-400 border border-slate-500/30">
+                                            Belum Input Nilai
+                                        </span>
+                                    @endif
                                 </td>
-                                <td class="px-4 py-3 text-center">
+                                <td class="px-4 py-2 text-center">
                                     <a href="{{ route('admin.pkl.nilai.show', ['pklId' => $pkl->id, 'type' => 'soft']) }}"
                                         class="px-3 py-1.5 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded-lg text-xs font-medium transition-colors cursor-pointer border border-blue-500/30 inline-block">
-                                        Detail Nilai
+                                        {{ $pkl->softNilai->count() > 0 ? 'Detail Nilai' : 'Input Nilai' }}
                                     </a>
                                 </td>
                             </tr>
@@ -254,23 +260,29 @@
                                 </tr>
                             @endif
                             <tr class="hover:bg-slate-800/30 transition-colors">
-                                <td class="px-4 py-3 text-sm text-slate-400">{{ $loop->iteration }}</td>
-                                <td class="px-4 py-3">
+                                <td class="px-4 py-2 text-sm text-slate-400">{{ $loop->iteration }}</td>
+                                <td class="px-4 py-2">
                                     <p class="text-sm font-medium text-white">{{ $pkl->student->name ?? '-' }}</p>
                                     <p class="text-xs text-slate-400">{{ $pkl->student->nis ?? '-' }}</p>
                                 </td>
-                                <td class="px-4 py-3 text-sm text-slate-300">{{ $pkl->student->kelas->nm_kls ?? '-' }}</td>
-                                <td class="px-4 py-3 text-center">
-                                    <span
-                                        class="inline-flex items-center px-2.5 py-1 rounded-lg text-sm font-semibold
-                                                                                                                                                                {{ ($pkl->hardNilai->avg('nilai') ?? 0) >= 80 ? 'bg-emerald-500/20 text-emerald-400' : (($pkl->hardNilai->avg('nilai') ?? 0) >= 60 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400') }}">
-                                        {{ number_format($pkl->hardNilai->avg('nilai') ?? 0, 1) }}
-                                    </span>
+                                <td class="px-4 py-2 text-sm text-slate-300">{{ $pkl->student->kelas->nm_kls ?? '-' }}</td>
+                                <td class="px-4 py-2 text-center">
+                                    @if($pkl->hardNilai->count() > 0)
+                                        <span
+                                            class="inline-flex items-center px-2.5 py-1 rounded-lg text-sm font-semibold
+                                            {{ ($pkl->hardNilai->avg('nilai') ?? 0) >= 80 ? 'bg-emerald-500/20 text-emerald-400' : (($pkl->hardNilai->avg('nilai') ?? 0) >= 60 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400') }}">
+                                            {{ number_format($pkl->hardNilai->avg('nilai') ?? 0, 1) }}
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-500/20 text-slate-400 border border-slate-500/30">
+                                            Belum Input Nilai
+                                        </span>
+                                    @endif
                                 </td>
-                                <td class="px-4 py-3 text-center">
+                                <td class="px-4 py-2 text-center">
                                     <a href="{{ route('admin.pkl.nilai.show', ['pklId' => $pkl->id, 'type' => 'hard']) }}"
                                         class="px-3 py-1.5 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded-lg text-xs font-medium transition-colors cursor-pointer border border-blue-500/30 inline-block">
-                                        Detail Nilai
+                                        {{ $pkl->hardNilai->count() > 0 ? 'Detail Nilai' : 'Input Nilai' }}
                                     </a>
                                 </td>
                             </tr>
@@ -331,23 +343,29 @@
                                 </tr>
                             @endif
                             <tr class="hover:bg-slate-800/30 transition-colors">
-                                <td class="px-4 py-3 text-sm text-slate-400">{{ $loop->iteration }}</td>
-                                <td class="px-4 py-3">
+                                <td class="px-4 py-2 text-sm text-slate-400">{{ $loop->iteration }}</td>
+                                <td class="px-4 py-2">
                                     <p class="text-sm font-medium text-white">{{ $pkl->student->name ?? '-' }}</p>
                                     <p class="text-xs text-slate-400">{{ $pkl->student->nis ?? '-' }}</p>
                                 </td>
-                                <td class="px-4 py-3 text-sm text-slate-300">{{ $pkl->student->kelas->nm_kls ?? '-' }}</td>
-                                <td class="px-4 py-3 text-center">
-                                    <span
-                                        class="inline-flex items-center px-2.5 py-1 rounded-lg text-sm font-semibold
-                                                                                                                                                {{ ($pkl->wirausahaNilai->avg('nilai') ?? 0) >= 80 ? 'bg-emerald-500/20 text-emerald-400' : (($pkl->wirausahaNilai->avg('nilai') ?? 0) >= 60 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400') }}">
-                                        {{ number_format($pkl->wirausahaNilai->avg('nilai') ?? 0, 1) }}
-                                    </span>
+                                <td class="px-4 py-2 text-sm text-slate-300">{{ $pkl->student->kelas->nm_kls ?? '-' }}</td>
+                                <td class="px-4 py-2 text-center">
+                                    @if($pkl->wirausahaNilai->count() > 0)
+                                        <span
+                                            class="inline-flex items-center px-2.5 py-1 rounded-lg text-sm font-semibold
+                                            {{ ($pkl->wirausahaNilai->avg('nilai') ?? 0) >= 80 ? 'bg-emerald-500/20 text-emerald-400' : (($pkl->wirausahaNilai->avg('nilai') ?? 0) >= 60 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400') }}">
+                                            {{ number_format($pkl->wirausahaNilai->avg('nilai') ?? 0, 1) }}
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-500/20 text-slate-400 border border-slate-500/30">
+                                            Belum Input Nilai
+                                        </span>
+                                    @endif
                                 </td>
-                                <td class="px-4 py-3 text-center">
+                                <td class="px-4 py-2 text-center">
                                     <a href="{{ route('admin.pkl.nilai.show', ['pklId' => $pkl->id, 'type' => 'wirausaha']) }}"
                                         class="px-3 py-1.5 bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 rounded-lg text-xs font-medium transition-colors cursor-pointer border border-amber-500/30 inline-block">
-                                        Detail Nilai
+                                        {{ $pkl->wirausahaNilai->count() > 0 ? 'Detail Nilai' : 'Input Nilai' }}
                                     </a>
                                 </td>
                             </tr>

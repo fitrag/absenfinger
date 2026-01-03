@@ -186,13 +186,38 @@
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 text-center">
-                                            <a href="{{ route('admin.pkl.suket.print', $pkl->id) }}" target="_blank"
-                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 rounded-lg text-xs font-medium transition-colors border border-amber-500/20">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                                </svg>
-                                                Cetak
-                                            </a>
+                                            <div class="relative inline-block" x-data="{ open: false }">
+                                                <button @click="open = !open" 
+                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 rounded-lg text-xs font-medium transition-colors border border-amber-500/20 cursor-pointer">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                                    </svg>
+                                                    Cetak
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                                    </svg>
+                                                </button>
+                                                <div x-show="open" @click.away="open = false" 
+                                                    class="absolute right-0 mt-1 w-36 rounded-lg shadow-2xl z-50"
+                                                    style="background-color: #1e293b;"
+                                                    x-transition:enter="transition ease-out duration-100"
+                                                    x-transition:enter-start="transform opacity-0 scale-95"
+                                                    x-transition:enter-end="transform opacity-100 scale-100"
+                                                    x-transition:leave="transition ease-in duration-75"
+                                                    x-transition:leave-start="transform opacity-100 scale-100"
+                                                    x-transition:leave-end="transform opacity-0 scale-95">
+                                                    <div class="py-1 border border-slate-600 rounded-lg overflow-hidden">
+                                                        <a href="{{ route('admin.pkl.suket.print', $pkl->id) }}?paper_size=a4" target="_blank"
+                                                            class="flex items-center gap-2 px-4 py-2 text-xs text-slate-200 hover:bg-slate-700 hover:text-white transition-colors">
+                                                            <span>📄</span> A4
+                                                        </a>
+                                                        <a href="{{ route('admin.pkl.suket.print', $pkl->id) }}?paper_size=legal" target="_blank"
+                                                            class="flex items-center gap-2 px-4 py-2 text-xs text-slate-200 hover:bg-slate-700 hover:text-white transition-colors">
+                                                            <span>📄</span> Legal
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </td>
                                     </tr>
                                 @endforeach

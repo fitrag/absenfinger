@@ -37,6 +37,14 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
     Route::put('/profile/guru', [\App\Http\Controllers\Admin\ProfileController::class, 'updateGuru'])->name('profile.guru');
     Route::put('/profile/student', [\App\Http\Controllers\Admin\ProfileController::class, 'updateStudent'])->name('profile.student');
 
+    // Session Monitoring Routes (Admin Only)
+    Route::prefix('sessions')->name('sessions.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\SessionMonitorController::class, 'index'])->name('index');
+        Route::get('/online', [\App\Http\Controllers\Admin\SessionMonitorController::class, 'getOnlineUsers'])->name('online');
+        Route::get('/activities/{userId}', [\App\Http\Controllers\Admin\SessionMonitorController::class, 'getUserActivities'])->name('activities');
+        Route::post('/force-logout/{sessionId}', [\App\Http\Controllers\Admin\SessionMonitorController::class, 'forceLogout'])->name('forceLogout');
+    });
+
     // Students Routes
     Route::get('/students/naik-kelas', [StudentController::class, 'naikKelasForm'])->name('students.naikKelas');
     Route::get('/students/naik-kelas/students/{kelas_id}', [StudentController::class, 'getStudentsByKelasForNaikKelas'])->name('students.naikKelas.students');
@@ -94,6 +102,7 @@ Route::prefix('admin')->name('admin.')->middleware('admin')->group(function () {
     Route::get('/attendance/absent-students', [AttendanceController::class, 'getAbsentStudents'])->name('attendance.absent-students');
     Route::post('/attendance/store-absence', [AttendanceController::class, 'storeAbsence'])->name('attendance.store-absence');
     Route::put('/attendance/update-absence', [AttendanceController::class, 'updateAbsence'])->name('attendance.update-absence');
+    Route::get('/attendance/kelas/{kelasId}', [AttendanceController::class, 'showByKelas'])->name('attendance.showByKelas');
     Route::resource('attendance', AttendanceController::class);
 
     // Reports Routes

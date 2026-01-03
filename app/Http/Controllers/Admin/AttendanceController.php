@@ -13,7 +13,7 @@ use Carbon\Carbon;
 class AttendanceController extends Controller
 {
     /**
-     * Display attendance list.
+     * Display attendance summary per class.
      */
     public function index(Request $request)
     {
@@ -28,7 +28,7 @@ class AttendanceController extends Controller
         $isAdmin = in_array('Admin', $userRoles) || in_array('Kepsek', $userRoles) || $userLevel === 'admin';
         $isPiket = in_array('Piket', $userRoles);
 
-        // Can input/update absence: Admin or Piket (not Wali Kelas unless they are also Admin/Piket)
+        // Can input/update absence
         $canInputAbsence = $isAdmin || $isPiket;
 
         $walasKelasId = null;
@@ -49,112 +49,118 @@ class AttendanceController extends Controller
             }
         }
 
-        // Build query for active students
-        $query = Student::with(['kelas'])->where('is_active', true);
-
-        // Filter by kelas - force Wali Kelas to their class
+        // Get kelas list for display (filtered for Wali Kelas, exclude '-' kelas)
         if ($isWaliKelas && !$isAdmin && $walasKelasId) {
-            $query->where('kelas_id', $walasKelasId);
-        } elseif ($request->has('kelas_id') && $request->kelas_id) {
-            $query->where('kelas_id', $request->kelas_id);
-        }
-
-        // Search by NIS or name
-        if ($request->has('search') && $request->search) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('nis', 'like', "%{$search}%")
-                    ->orWhere('name', 'like', "%{$search}%");
-            });
-        }
-
-        // Pagination
-        $perPage = $request->get('perPage', 36);
-        if ($perPage === 'all') {
-            $students = $query->orderBy('name')->get();
+            $kelasList = Kelas::where('id', $walasKelasId)->where('nm_kls', '!=', '-')->orderBy('nm_kls')->get();
         } else {
-            $students = $query->orderBy('name')->paginate((int) $perPage)->withQueryString();
+            $kelasList = Kelas::where('nm_kls', '!=', '-')->orderBy('nm_kls')->get();
         }
 
-        // Get attendance data for the date grouped by NIS
-        $attendanceData = Attendance::whereDate('checktime', $date)
-            ->get()
-            ->groupBy('nis')
-            ->map(function ($records) {
-                // First check for normal check-in (type 0), then check for special status (2,3,4)
-                $checkIn = $records->where('checktype', 0)->sortBy('checktime')->first();
-                if (!$checkIn) {
-                    // Check for Sakit/Izin/Alpha
-                    $checkIn = $records->whereIn('checktype', [2, 3, 4])->first();
+        // Get all active students grouped by kelas
+        $allStudents = Student::where('is_active', true)->get()->groupBy('kelas_id');
+
+        // Get all attendance data for the date
+        $allAttendanceData = Attendance::whereDate('checktime', $date)->get()->groupBy('nis');
+
+        // Map NIS to kelas_id for faster lookup
+        $nisToKelas = Student::where('is_active', true)->pluck('kelas_id', 'nis');
+
+        // Calculate attendance stats per class
+        $kelasAttendance = [];
+        $totalHadir = 0;
+        $totalSakit = 0;
+        $totalIzin = 0;
+        $totalAlpha = 0;
+        $totalBolos = 0;
+        $totalTerlambat = 0;
+        $totalTidakAbsen = 0;
+        $totalSiswa = 0;
+
+        foreach ($kelasList as $kelas) {
+            $studentsInClass = $allStudents->get($kelas->id, collect([]));
+            $studentCount = $studentsInClass->count();
+            $totalSiswa += $studentCount;
+
+            $hadir = 0;
+            $sakit = 0;
+            $izin = 0;
+            $alpha = 0;
+            $bolos = 0;
+            $terlambat = 0;
+
+            foreach ($studentsInClass as $student) {
+                $records = $allAttendanceData->get($student->nis);
+
+                if (!$records) {
+                    // No attendance record = tidak absen
+                    continue;
                 }
-                return [
-                    'check_in' => $checkIn,
-                    'check_out' => $records->where('checktype', 1)->sortByDesc('checktime')->first(),
-                ];
-            });
 
-        // Get kelas list for filter
-        if ($isWaliKelas && !$isAdmin && $walasKelasId) {
-            $kelasList = Kelas::where('id', $walasKelasId)->get();
-        } else {
-            $kelasList = Kelas::orderBy('nm_kls')->get();
-        }
+                // Check for special status first (Sakit/Izin/Alpha)
+                $specialRecord = $records->whereIn('checktype', [2, 3, 4])->first();
+                if ($specialRecord) {
+                    if ($specialRecord->checktype == 2) {
+                        $sakit++;
+                    } elseif ($specialRecord->checktype == 3) {
+                        $izin++;
+                    } elseif ($specialRecord->checktype == 4) {
+                        $alpha++;
+                    }
+                    continue;
+                }
 
-        // Statistics for selected date - filter by class for Wali Kelas
-        if ($isWaliKelas && !$isAdmin && $walasKelasId) {
-            $totalStudents = Student::where('kelas_id', $walasKelasId)->where('is_active', true)->count();
-            $studentNisForStats = Student::where('kelas_id', $walasKelasId)->where('is_active', true)->pluck('nis')->toArray();
-        } else {
-            $totalStudents = Student::active()->count();
-            $studentNisForStats = null; // null means all students
-        }
+                // Check for normal attendance
+                $checkIn = $records->where('checktype', 0)->sortBy('checktime')->first();
+                $checkOut = $records->where('checktype', 1)->sortByDesc('checktime')->first();
 
-        // Calculate detailed stats
-        $hadirCount = 0;      // Hadir tepat waktu + pulang
-        $terlambatCount = 0;  // Terlambat + pulang
-        $bolosCount = 0;      // Masuk tapi tidak pulang
-        $sakitCount = 0;
-        $izinCount = 0;
-        $alphaManualCount = 0;
-
-        foreach ($attendanceData as $nis => $data) {
-            // Skip if Wali Kelas and student not in their class
-            if ($studentNisForStats !== null && !in_array($nis, $studentNisForStats)) {
-                continue;
-            }
-
-            $checkIn = $data['check_in'];
-            $checkOut = $data['check_out'];
-
-            if ($checkIn) {
-                // Check for special status (Sakit/Izin/Alpha)
-                if ($checkIn->checktype == 2) {
-                    $sakitCount++;
-                } elseif ($checkIn->checktype == 3) {
-                    $izinCount++;
-                } elseif ($checkIn->checktype == 4) {
-                    $alphaManualCount++;
-                } else {
-                    // Normal check-in
+                if ($checkIn) {
                     $isLate = $checkIn->checktime->format('H:i') > '07:00';
                     if (!$checkOut) {
-                        $bolosCount++;
+                        $bolos++;
                     } elseif ($isLate) {
-                        $terlambatCount++;
+                        $terlambat++;
                     } else {
-                        $hadirCount++;
+                        $hadir++;
                     }
                 }
             }
+
+            $tidakAbsen = $studentCount - ($hadir + $sakit + $izin + $alpha + $bolos + $terlambat);
+
+            $kelasAttendance[] = [
+                'id' => $kelas->id,
+                'nama_kelas' => $kelas->nm_kls,
+                'jumlah_siswa' => $studentCount,
+                'hadir' => $hadir,
+                'sakit' => $sakit,
+                'izin' => $izin,
+                'alpha' => $alpha,
+                'bolos' => $bolos,
+                'terlambat' => $terlambat,
+                'tidak_absen' => $tidakAbsen,
+            ];
+
+            $totalHadir += $hadir;
+            $totalSakit += $sakit;
+            $totalIzin += $izin;
+            $totalAlpha += $alpha;
+            $totalBolos += $bolos;
+            $totalTerlambat += $terlambat;
+            $totalTidakAbsen += $tidakAbsen;
         }
 
-        $presentCount = $hadirCount + $terlambatCount + $bolosCount + $sakitCount + $izinCount + $alphaManualCount;
-        $belumAbsenCount = $totalStudents - $presentCount;
-        $alphaCount = $alphaManualCount;
+        // Global statistics
+        $totalStudents = $totalSiswa;
+        $hadirCount = $totalHadir;
+        $sakitCount = $totalSakit;
+        $izinCount = $totalIzin;
+        $alphaCount = $totalAlpha;
+        $bolosCount = $totalBolos;
+        $terlambatCount = $totalTerlambat;
+        $belumAbsenCount = $totalTidakAbsen;
 
         return view('admin.attendance.index', compact(
-            'students',
-            'attendanceData',
+            'kelasAttendance',
             'kelasList',
             'date',
             'totalStudents',
@@ -173,9 +179,46 @@ class AttendanceController extends Controller
     }
 
     /**
+     * Display attendance detail for a specific class.
+     */
+    public function showByKelas(Request $request, $kelasId)
     {
-        $attendance->load('student');
-        return view('admin.attendance.show', compact('attendance'));
+        $date = $request->get('date', now()->toDateString());
+
+        $kelas = Kelas::findOrFail($kelasId);
+
+        // Get students in this class
+        $students = Student::where('kelas_id', $kelasId)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        // Get attendance data for the date
+        $attendanceData = Attendance::whereDate('checktime', $date)
+            ->get()
+            ->groupBy('nis')
+            ->map(function ($records) {
+                $checkIn = $records->where('checktype', 0)->sortBy('checktime')->first();
+                $special = $records->whereIn('checktype', [2, 3, 4])->first();
+                if (!$checkIn && $special) {
+                    $checkIn = $special;
+                }
+                return [
+                    'check_in' => $checkIn,
+                    'check_out' => $records->where('checktype', 1)->sortByDesc('checktime')->first(),
+                ];
+            });
+
+        // Get kelas list for filter dropdown
+        $kelasList = Kelas::orderBy('nm_kls')->get();
+
+        return view('admin.attendance.show-kelas', compact(
+            'kelas',
+            'students',
+            'attendanceData',
+            'date',
+            'kelasList'
+        ));
     }
 
     /**
@@ -372,7 +415,7 @@ class AttendanceController extends Controller
     }
 
     /**
-     * Store absence record (sakit/izin/alpha).
+     * Store absence record (sakit/izin/alpha/hadir).
      */
     public function storeAbsence(Request $request)
     {
@@ -380,7 +423,7 @@ class AttendanceController extends Controller
             'date' => 'required|date',
             'students' => 'required|array|min:1',
             'students.*.nis' => 'required|string|exists:students,nis',
-            'students.*.status' => 'nullable|in:sakit,izin,alpha',
+            'students.*.status' => 'nullable|in:hadir,sakit,izin,alpha',
         ]);
 
         $date = $request->date;
@@ -403,25 +446,39 @@ class AttendanceController extends Controller
                 continue;
             }
 
-            $checktype = $checktypeMap[$status];
-
             // Check if already has an attendance record for this date
             $exists = Attendance::where('nis', $nis)
                 ->whereDate('checktime', $date)
                 ->exists();
 
             if (!$exists) {
-                Attendance::create([
-                    'nis' => $nis,
-                    'checktime' => Carbon::parse($date)->setTime(0, 0, 0),
-                    'checktype' => $checktype,
-                ]);
+                if ($status === 'hadir') {
+                    // Create check-in record (hadir) at 07:00
+                    Attendance::create([
+                        'nis' => $nis,
+                        'checktime' => Carbon::parse($date)->setTime(7, 0, 0),
+                        'checktype' => 0, // Check-in
+                    ]);
+                    // Create check-out record at 16:00
+                    Attendance::create([
+                        'nis' => $nis,
+                        'checktime' => Carbon::parse($date)->setTime(16, 0, 0),
+                        'checktype' => 1, // Check-out
+                    ]);
+                } else {
+                    $checktype = $checktypeMap[$status];
+                    Attendance::create([
+                        'nis' => $nis,
+                        'checktime' => Carbon::parse($date)->setTime(0, 0, 0),
+                        'checktype' => $checktype,
+                    ]);
+                }
                 $count++;
             }
         }
 
         return redirect()->route('admin.attendance.index', ['date' => $date])
-            ->with('success', "Berhasil menyimpan {$count} data ketidakhadiran.");
+            ->with('success', "Berhasil menyimpan {$count} data kehadiran.");
     }
 
     /**

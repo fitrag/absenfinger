@@ -6,9 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Surat Keterangan PKL - {{ $pkl->student->name ?? 'Siswa' }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@700&display=swap" rel="stylesheet">
+    @php
+        $isLegal = ($paperSize ?? 'legal') === 'legal';
+        $pageWidth = $isLegal ? '355.6mm' : '297mm';
+        $pageHeight = $isLegal ? '215.9mm' : '210mm';
+        $pageSizeCSS = $isLegal ? 'Legal landscape' : 'A4 landscape';
+    @endphp
     <style>
         @page {
-            size: A4 landscape;
+            size: {{ $pageSizeCSS }};
             margin: 0;
         }
 
@@ -26,8 +32,8 @@
         }
 
         .page {
-            width: 297mm;
-            height: 210mm;
+            width: {{ $pageWidth }};
+            height: {{ $pageHeight }};
             background: white;
             margin: 10px auto;
             position: relative;

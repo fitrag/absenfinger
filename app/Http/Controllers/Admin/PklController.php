@@ -550,7 +550,7 @@ class PklController extends Controller
     /**
      * Print Suket PKL
      */
-    public function printSuket($id)
+    public function printSuket(Request $request, $id)
     {
         $pkl = Pkl::with([
             'student.kelas',
@@ -597,6 +597,9 @@ class PklController extends Controller
         $bgFront = $sertifikat ? $sertifikat->bgFront : null;
         $bgBack = $sertifikat ? $sertifikat->bgBack : null;
 
+        // Get paper size from request (default: legal)
+        $paperSize = $request->get('paper_size', 'legal');
+
         return view('admin.pkl.suket.print', compact(
             'pkl',
             'setting',
@@ -608,7 +611,8 @@ class PklController extends Controller
             'huruf',
             'bgFront',
             'bgBack',
-            'sertifikat'
+            'sertifikat',
+            'paperSize'
         ));
     }
     /**
