@@ -14,11 +14,12 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('guru_id')->constrained('m_gurus')->onDelete('cascade');
             $table->foreignId('kelas_id')->constrained('kelas')->onDelete('cascade');
+            $table->foreignId('m_mapel_id')->nullable()->constrained('m_mapels')->onDelete('cascade');
             $table->foreignId('tp_id')->constrained('m_tp')->onDelete('cascade');
             $table->boolean('is_active')->default(true);
             $table->timestamps();
 
-            $table->unique(['guru_id', 'kelas_id', 'tp_id']);
+            $table->unique(['guru_id', 'kelas_id', 'm_mapel_id', 'tp_id']);
         });
     }
 
