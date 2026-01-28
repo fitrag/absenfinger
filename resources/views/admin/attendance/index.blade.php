@@ -6,7 +6,7 @@
 @section('content')
     <div class="space-y-6" x-data="attendancePage()">
         <!-- Header & Stats -->
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="space-y-4">
             <div>
                 <h2 class="text-xl font-bold text-white">Data Presensi</h2>
                 <p class="text-sm text-slate-400 mt-1">
@@ -18,32 +18,42 @@
                     @endif
                 </p>
             </div>
-            <div class="flex flex-wrap gap-2">
-                <button @click="showAbsenceModal = true"
-                    class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-medium rounded-xl hover:from-blue-600 hover:to-indigo-600 transition-all shadow-lg shadow-blue-500/20 cursor-pointer">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                    Input Ketidakhadiran
-                </button>
-                <button @click="showUpdateModal = true"
-                    class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all shadow-lg shadow-amber-500/20 cursor-pointer">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                    Update Ketidakhadiran
-                </button>
-                <button @click="showExportModal = true"
-                    class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-medium rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all shadow-lg shadow-emerald-500/20 cursor-pointer">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Export Excel
-                </button>
-
-            </div>
+            {{-- Tombol tampil jika: Admin, Piket, atau Piket+Walas. Tidak tampil jika: Kepsek atau Walas saja --}}
+            @if(!$isKepsek && (($isAdmin && !in_array('Kepsek', session('user_roles', []))) || $isPiket))
+                <div class="flex flex-wrap gap-2" style="justify-content: flex-end;">
+                    <button @click="showAbsenceModal = true"
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-medium rounded-xl hover:from-blue-600 hover:to-indigo-600 transition-all shadow-lg shadow-blue-500/20 cursor-pointer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Input Ketidakhadiran
+                    </button>
+                    <button @click="showUpdateModal = true"
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all shadow-lg shadow-amber-500/20 cursor-pointer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Update Ketidakhadiran
+                    </button>
+                    <button @click="showExportModal = true"
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-medium rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all shadow-lg shadow-emerald-500/20 cursor-pointer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Export Excel
+                    </button>
+                    <button @click="showPrintStatusModal = true"
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white font-medium rounded-xl hover:from-rose-600 hover:to-pink-600 transition-all shadow-lg shadow-rose-500/20 cursor-pointer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                        Cetak Status
+                    </button>
+                </div>
+            @endif
         </div>
 
         <!-- Compact Stats -->
@@ -54,16 +64,15 @@
                 <span class="font-bold">{{ $totalStudents }}</span> Total
             </span>
             <span
+                class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-teal-500/10 text-teal-400 border border-teal-500/20">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span class="font-bold">{{ $checkinCount }}</span> Checkin
+            </span>
+            <span
                 class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                 <span class="font-bold">{{ $hadirCount }}</span> Hadir
-            </span>
-            <span
-                class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                <span class="font-bold">{{ $terlambatCount }}</span> Terlambat
-            </span>
-            <span
-                class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                <span class="font-bold">{{ $bolosCount }}</span> Bolos
             </span>
             <span
                 class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20">
@@ -101,7 +110,28 @@
                 </a>
             </form>
         </div>
-
+        <div class="flex items-center gap-2 text-xs">
+            <span
+                class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-teal-500/10 text-teal-400 border border-teal-500/20">
+                <span class="font-bold">M</span> <span class="text-slate-400">→</span> Jumlah Masuk
+            </span>
+            <span
+                class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                <span class="font-bold">P</span> <span class="text-slate-400">→</span>Jumlah Pulang
+            </span>
+            <span
+                class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-green-500/10 text-green-400 border border-green-500/20">
+                <span class="font-bold">H</span> <span class="text-slate-400">→</span>Jumlah Hadir
+            </span>
+            <span
+                class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20">
+                <span class="font-bold">BA</span> <span class="text-slate-400">→</span>Jumlah Belum Absen
+            </span>
+            <span
+                class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                <span class="font-bold">B</span> <span class="text-slate-400">→</span>Jumlah Bolos
+            </span>
+        </div>
         <!-- Table Per Kelas -->
         <div class="rounded-xl bg-slate-900/50 border border-slate-800/50">
             <div class="overflow-x-auto">
@@ -114,27 +144,33 @@
                             <th
                                 class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider bg-slate-900">
                                 Kelas</th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold text-teal-400 uppercase tracking-wider bg-slate-900"
+                                title="Sudah Check-in">
+                                M
+                            </th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold text-cyan-400 uppercase tracking-wider bg-slate-900"
+                                title="Sudah Check-out">
+                                P
+                            </th>
                             <th
                                 class="px-4 py-3 text-center text-xs font-semibold text-emerald-400 uppercase tracking-wider bg-slate-900">
-                                Hadir</th>
+                                H</th>
                             <th
                                 class="px-4 py-3 text-center text-xs font-semibold text-purple-400 uppercase tracking-wider bg-slate-900">
-                                Sakit</th>
+                                <Samp>S</Samp>
+                            </th>
                             <th
                                 class="px-4 py-3 text-center text-xs font-semibold text-blue-400 uppercase tracking-wider bg-slate-900">
-                                Izin</th>
+                                I</th>
                             <th
                                 class="px-4 py-3 text-center text-xs font-semibold text-red-400 uppercase tracking-wider bg-slate-900">
-                                Alpha</th>
-                            <th
-                                class="px-4 py-3 text-center text-xs font-semibold text-rose-400 uppercase tracking-wider bg-slate-900">
-                                Bolos</th>
-                            <th
-                                class="px-4 py-3 text-center text-xs font-semibold text-amber-400 uppercase tracking-wider bg-slate-900">
-                                Terlambat</th>
+                                A</th>
+                            <th class="px-4 py-3 text-center text-xs font-semibold text-rose-400 uppercase tracking-wider bg-slate-900"
+                                title="Bolos (Masuk tanpa Pulang)">
+                                B</th>
                             <th
                                 class="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider bg-slate-900">
-                                Tidak Absen</th>
+                                BA</th>
                             <th
                                 class="px-4 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider bg-slate-900">
                                 Aksi</th>
@@ -147,6 +183,18 @@
                                 <td class="px-4 py-3">
                                     <div class="text-sm font-medium text-white">{{ $data['nama_kelas'] }}</div>
                                     <div class="text-xs text-slate-400">{{ $data['jumlah_siswa'] }} siswa</div>
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    <span
+                                        class="inline-flex px-2 py-1 rounded-lg text-xs font-medium {{ $data['checkin'] > 0 ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' : 'text-slate-500' }}">
+                                        {{ $data['checkin'] }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    <span
+                                        class="inline-flex px-2 py-1 rounded-lg text-xs font-medium {{ $data['checkout'] > 0 ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'text-slate-500' }}">
+                                        {{ $data['checkout'] }}
+                                    </span>
                                 </td>
                                 <td class="px-4 py-3 text-center">
                                     <span
@@ -180,12 +228,6 @@
                                 </td>
                                 <td class="px-4 py-3 text-center">
                                     <span
-                                        class="inline-flex px-2 py-1 rounded-lg text-xs font-medium {{ $data['terlambat'] > 0 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'text-slate-500' }}">
-                                        {{ $data['terlambat'] }}
-                                    </span>
-                                </td>
-                                <td class="px-4 py-3 text-center">
-                                    <span
                                         class="inline-flex px-2 py-1 rounded-lg text-xs font-medium {{ $data['tidak_absen'] > 0 ? 'bg-slate-500/10 text-slate-400 border border-slate-500/20' : 'text-slate-500' }}">
                                         {{ $data['tidak_absen'] }}
                                     </span>
@@ -199,7 +241,7 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                         </svg>
-                                        Detail
+
                                     </a>
                                 </td>
                             </tr>
@@ -221,13 +263,13 @@
                         <tr>
                             <td class="px-4 py-3 text-sm font-semibold text-white" colspan="2">Total ({{ $totalStudents }}
                                 siswa)</td>
+                            <td class="px-4 py-3 text-center text-sm font-semibold text-teal-400">{{ $checkinCount }}</td>
+                            <td class="px-4 py-3 text-center text-sm font-semibold text-cyan-400">{{ $checkoutCount }}</td>
                             <td class="px-4 py-3 text-center text-sm font-semibold text-emerald-400">{{ $hadirCount }}</td>
                             <td class="px-4 py-3 text-center text-sm font-semibold text-purple-400">{{ $sakitCount }}</td>
                             <td class="px-4 py-3 text-center text-sm font-semibold text-blue-400">{{ $izinCount }}</td>
                             <td class="px-4 py-3 text-center text-sm font-semibold text-red-400">{{ $alphaCount }}</td>
                             <td class="px-4 py-3 text-center text-sm font-semibold text-rose-400">{{ $bolosCount }}</td>
-                            <td class="px-4 py-3 text-center text-sm font-semibold text-amber-400">{{ $terlambatCount }}
-                            </td>
                             <td class="px-4 py-3 text-center text-sm font-semibold text-slate-400">{{ $belumAbsenCount }}
                             </td>
                             <td class="px-4 py-3"></td>
@@ -238,12 +280,12 @@
         </div>
 
         <!-- Absence Modal -->
-        <div x-show="showAbsenceModal" x-transition:enter="transition ease-out duration-300"
+        <div x-cloak x-show="showAbsenceModal" x-transition:enter="transition ease-out duration-300"
             x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
             x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100"
             x-transition:leave-end="opacity-0"
             class="fixed inset-0 z-50 flex items-start justify-center p-4 pt-20 bg-black/50 backdrop-blur-sm overflow-y-auto"
-            @click.self="showAbsenceModal = false" style="display: none;">
+            @click.self="showAbsenceModal = false">
 
             <div x-show="showAbsenceModal" x-transition:enter="transition ease-out duration-300"
                 x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
@@ -308,7 +350,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="max-h-72 overflow-y-auto">
+                        <div class="max-h-96 overflow-y-auto">
                             <template x-if="isLoading">
                                 <div class="p-6 text-center text-sky-300 text-sm">
                                     <svg class="animate-spin h-6 w-6 mx-auto mb-2 text-sky-400" fill="none"
@@ -361,7 +403,6 @@
                                                 <select :name="'students['+index+'][status]'" x-model="student.status"
                                                     class="text-sm px-3 py-1.5 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white focus:outline-none focus:border-blue-500/50">
                                                     <option value="">-- Pilih --</option>
-                                                    <option value="hadir">Hadir</option>
                                                     <option value="sakit">Sakit</option>
                                                     <option value="izin">Izin</option>
                                                     <option value="alpha">Alpha</option>
@@ -392,12 +433,12 @@
         </div>
 
         <!-- Update Absence Modal -->
-        <div x-show="showUpdateModal" x-transition:enter="transition ease-out duration-300"
+        <div x-cloak x-show="showUpdateModal" x-transition:enter="transition ease-out duration-300"
             x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
             x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100"
             x-transition:leave-end="opacity-0"
             class="fixed inset-0 z-50 flex items-start justify-center p-4 pt-16 bg-black/50 backdrop-blur-sm overflow-y-auto"
-            @click.self="showUpdateModal = false" style="display: none;">
+            @click.self="showUpdateModal = false">
 
             <div x-show="showUpdateModal" x-transition:enter="transition ease-out duration-300"
                 x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
@@ -505,11 +546,11 @@
                                             <td class="px-4 py-3 text-center">
                                                 <span class="inline-flex px-2 py-1 rounded-lg text-xs font-medium"
                                                     :class="{
-                                                                                                                                                                'bg-purple-500/20 text-purple-300 border border-purple-500/30': student.current_status === 'sakit',
-                                                                                                                                                                'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30': student.current_status === 'izin',
-                                                                                                                                                                'bg-red-500/20 text-red-300 border border-red-500/30': student.current_status === 'alpha',
-                                                                                                                                                                'bg-rose-500/20 text-rose-300 border border-rose-500/30': student.current_status === 'bolos'
-                                                                                                                                                            }"
+                                                                                                                                                                                                                                                    'bg-purple-500/20 text-purple-300 border border-purple-500/30': student.current_status === 'sakit',
+                                                                                                                                                                                                                                                    'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30': student.current_status === 'izin',
+                                                                                                                                                                                                                                                    'bg-red-500/20 text-red-300 border border-red-500/30': student.current_status === 'alpha',
+                                                                                                                                                                                                                                                    'bg-rose-500/20 text-rose-300 border border-rose-500/30': student.current_status === 'bolos'
+                                                                                                                                                                                                                                                }"
                                                     x-text="student.current_status.charAt(0).toUpperCase() + student.current_status.slice(1)"></span>
                                             </td>
                                             <td class="px-4 py-3 text-center">
@@ -518,6 +559,7 @@
                                                 <select :name="'students['+index+'][status]'" x-model="student.new_status"
                                                     class="text-sm px-3 py-1.5 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white focus:outline-none focus:border-blue-500/50">
                                                     <option value="">-- Tidak Ubah --</option>
+                                                    <option value="hadir">Hadir</option>
                                                     <option value="sakit">Sakit</option>
                                                     <option value="izin">Izin</option>
                                                     <option value="alpha">Alpha</option>
@@ -549,12 +591,12 @@
         </div>
 
         <!-- Export Excel Modal -->
-        <div x-show="showExportModal" x-transition:enter="transition ease-out duration-300"
+        <div x-cloak x-show="showExportModal" x-transition:enter="transition ease-out duration-300"
             x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
             x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100"
             x-transition:leave-end="opacity-0"
             class="fixed inset-0 z-50 flex items-start justify-center p-4 pt-20 bg-black/50 backdrop-blur-sm overflow-y-auto"
-            @click.self="showExportModal = false" style="display: none;">
+            @click.self="showExportModal = false">
 
             <div x-show="showExportModal" x-transition:enter="transition ease-out duration-300"
                 x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
@@ -608,6 +650,68 @@
             </div>
         </div>
 
+        <!-- Print Status Modal -->
+        <div x-cloak x-show="showPrintStatusModal" x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            class="fixed inset-0 z-50 flex items-start justify-center p-4 pt-20 bg-black/50 backdrop-blur-sm overflow-y-auto"
+            @click.self="showPrintStatusModal = false">
+
+            <div x-show="showPrintStatusModal" x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+                x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 scale-100"
+                x-transition:leave-end="opacity-0 scale-95"
+                class="w-full max-w-md bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl shadow-2xl border border-slate-700/50">
+
+                <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700/50">
+                    <h3 class="text-lg font-bold text-white">Cetak Status Kehadiran</h3>
+                    <button @click="showPrintStatusModal = false"
+                        class="text-slate-400 hover:text-white transition-colors cursor-pointer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="p-6 space-y-4">
+                    <p class="text-sm text-slate-400 mb-4">Pilih status yang ingin dicetak:</p>
+
+                    <a href="{{ route('admin.attendance.printBolos', ['date' => $date]) }}" target="_blank"
+                        class="flex items-center gap-3 w-full px-4 py-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 hover:bg-rose-500/20 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                        <div>
+                            <span class="font-medium">Bolos</span>
+                            <p class="text-xs text-slate-500">Siswa yang masuk tapi tidak pulang</p>
+                        </div>
+                    </a>
+
+                    <a href="{{ route('admin.attendance.printBelumMasuk', ['date' => $date]) }}" target="_blank"
+                        class="flex items-center gap-3 w-full px-4 py-3 bg-orange-500/10 border border-orange-500/30 rounded-xl text-orange-400 hover:bg-orange-500/20 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                        <div>
+                            <span class="font-medium">Belum Masuk</span>
+                            <p class="text-xs text-slate-500">Siswa yang belum absen sama sekali</p>
+                        </div>
+                    </a>
+
+                    <div class="pt-4 border-t border-slate-700/50">
+                        <button type="button" @click="showPrintStatusModal = false"
+                            class="w-full px-4 py-2.5 bg-slate-700 text-white font-medium rounded-xl hover:bg-slate-600 transition-colors cursor-pointer">
+                            Tutup
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <style>
             .date-white-icon::-webkit-calendar-picker-indicator {
                 filter: invert(1);
@@ -630,7 +734,7 @@
 
             .attendance-table tbody {
                 display: block;
-                max-height: 50vh;
+                max-height: 100vh;
                 overflow-y: auto;
             }
 
@@ -668,6 +772,9 @@
                     // Export modal
                     showExportModal: false,
 
+                    // Print Status modal
+                    showPrintStatusModal: false,
+
                     init() {
                         this.$watch('showAbsenceModal', value => {
                             document.body.classList.toggle('overflow-hidden', value);
@@ -692,74 +799,77 @@
                         this.$watch('showExportModal', value => {
                             document.body.classList.toggle('overflow-hidden', value);
                         });
-                    },
+                    this.$watch('showPrintStatusModal', value => {
+                                    document.body.classList.toggle('overflow-hidden', value);
+                                });
+                            },
 
-                    loadStudents(kelasId) {
-                        if (!kelasId) {
-                            this.students = [];
-                            return;
+                            loadStudents(kelasId) {
+                                if (!kelasId) {
+                                    this.students = [];
+                                    return;
+                                }
+
+                                this.isLoading = true;
+                                this.students = [];
+
+                                fetch(`{{ route('admin.attendance.students-by-class') }}?kelas_id=${kelasId}&date=${this.absenceDate}`)
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        this.students = data.map(s => ({ ...s, status: '' }));
+                                        this.isLoading = false;
+                                    })
+                                    .catch(error => {
+                                        console.error('Error:', error);
+                                        this.isLoading = false;
+                                    });
+                            },
+
+                            setAllStatus(status) {
+                                this.students = this.students.map(s => ({ ...s, status: status }));
+                            },
+
+                            getSelectedCount() {
+                                return this.students.filter(s => s.status !== '').length;
+                            },
+
+                            // Update modal methods
+                            loadAbsentStudents() {
+                                if (!this.updateKelasId) {
+                                    this.absentStudents = [];
+                                    return;
+                                }
+
+                                this.updateLoading = true;
+                                this.absentStudents = [];
+
+                                fetch(`{{ route('admin.attendance.absent-students') }}?kelas_id=${this.updateKelasId}&date=${this.updateDate}`)
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        this.absentStudents = data.map(s => ({ ...s, new_status: '' }));
+                                        this.updateLoading = false;
+                                    })
+                                    .catch(error => {
+                                        console.error('Error:', error);
+                                        this.updateLoading = false;
+                                    });
+                            },
+
+                            getUpdateCount() {
+                                return this.absentStudents.filter(s => s.new_status !== '').length;
+                            }
                         }
-
-                        this.isLoading = true;
-                        this.students = [];
-
-                        fetch(`{{ route('admin.attendance.students-by-class') }}?kelas_id=${kelasId}&date=${this.absenceDate}`)
-                            .then(response => response.json())
-                            .then(data => {
-                                this.students = data.map(s => ({ ...s, status: '' }));
-                                this.isLoading = false;
-                            })
-                            .catch(error => {
-                                console.error('Error:', error);
-                                this.isLoading = false;
-                            });
-                    },
-
-                    setAllStatus(status) {
-                        this.students = this.students.map(s => ({ ...s, status: status }));
-                    },
-
-                    getSelectedCount() {
-                        return this.students.filter(s => s.status !== '').length;
-                    },
-
-                    // Update modal methods
-                    loadAbsentStudents() {
-                        if (!this.updateKelasId) {
-                            this.absentStudents = [];
-                            return;
-                        }
-
-                        this.updateLoading = true;
-                        this.absentStudents = [];
-
-                        fetch(`{{ route('admin.attendance.absent-students') }}?kelas_id=${this.updateKelasId}&date=${this.updateDate}`)
-                            .then(response => response.json())
-                            .then(data => {
-                                this.absentStudents = data.map(s => ({ ...s, new_status: '' }));
-                                this.updateLoading = false;
-                            })
-                            .catch(error => {
-                                console.error('Error:', error);
-                                this.updateLoading = false;
-                            });
-                    },
-
-                    getUpdateCount() {
-                        return this.absentStudents.filter(s => s.new_status !== '').length;
                     }
-                }
-            }
-        </script>
+                </script>
 
-        @if(session('success'))
-            <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)"
-                class="fixed bottom-4 right-4 px-4 py-3 bg-emerald-500 text-white rounded-xl shadow-lg flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                {{ session('success') }}
+                @if(session('success'))
+                    <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 3000)"
+                        class="fixed bottom-4 right-4 px-4 py-3 bg-emerald-500 text-white rounded-xl shadow-lg flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        {{ session('success') }}
+                    </div>
+                @endif
             </div>
-        @endif
-    </div>
 @endsection

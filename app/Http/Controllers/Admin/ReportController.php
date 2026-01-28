@@ -7,6 +7,7 @@ use App\Models\Attendance;
 use App\Models\Student;
 use App\Models\Kelas;
 use App\Models\Walas;
+use App\Models\Holiday;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -56,12 +57,15 @@ class ReportController extends Controller
         $start = Carbon::parse($startDate);
         $end = Carbon::parse($endDate);
 
-        // Build date list (excluding weekends)
+        // Get holidays for the period
+        $holidayDates = Holiday::getHolidayDatesArray($start, $end);
+
+        // Build date list (excluding weekends and holidays)
         $dates = [];
         $current = $start->copy();
         while ($current <= $end) {
-            // Skip weekends
-            if ($current->dayOfWeek !== 0 && $current->dayOfWeek !== 6) {
+            // Skip weekends and holidays
+            if ($current->dayOfWeek !== 0 && $current->dayOfWeek !== 6 && !in_array($current->format('Y-m-d'), $holidayDates)) {
                 $dates[] = $current->copy();
             }
             $current->addDay();
@@ -106,30 +110,33 @@ class ReportController extends Controller
                 $status = '-'; // Default: belum absen
 
                 if ($records) {
-                    $checkIn = $records->where('checktype', 0)->first();
-                    $checkOut = $records->where('checktype', 1)->first();
-                    $specialStatus = $records->whereIn('checktype', [2, 3, 4])->first();
+                    $checkIn = $records->filter(fn($r) => (int) $r->checktype === 0)->first();
+                    $checkOut = $records->filter(fn($r) => (int) $r->checktype === 1)->first();
+                    $sakitRecord = $records->filter(fn($r) => (int) $r->checktype === 2)->first();
+                    $izinRecord = $records->filter(fn($r) => (int) $r->checktype === 3)->first();
 
-                    if ($specialStatus) {
-                        if ($specialStatus->checktype == 2) {
-                            $status = 'S';
-                            $summary['sakit']++;
-                        } elseif ($specialStatus->checktype == 3) {
-                            $status = 'I';
-                            $summary['izin']++;
-                        } elseif ($specialStatus->checktype == 4) {
-                            $status = 'A';
-                            $summary['alpha']++;
-                        }
+                    // Priority: Sakit/Izin > Hadir (if check-in and check-out) > Bolos (check-in only) > Alpha
+                    if ($sakitRecord) {
+                        $status = 'S';
+                        $summary['sakit']++;
+                    } elseif ($izinRecord) {
+                        $status = 'I';
+                        $summary['izin']++;
+                    } elseif ($checkIn && $checkOut) {
+                        $status = 'H';
+                        $summary['hadir']++;
                     } elseif ($checkIn) {
-                        if (!$checkOut) {
-                            $status = 'B';
-                            $summary['bolos']++;
-                        } else {
-                            $status = 'H';
-                            $summary['hadir']++;
-                        }
+                        $status = 'B';
+                        $summary['bolos']++;
+                    } else {
+                        // Has records but no check-in (e.g., only Alpha record)
+                        $status = 'A';
+                        $summary['alpha']++;
                     }
+                } else {
+                    // No attendance record at all = Alpha
+                    $status = 'A';
+                    $summary['alpha']++;
                 }
 
                 $attendanceMatrix[$student->nis][$date->format('Y-m-d')] = $status;
@@ -212,11 +219,14 @@ class ReportController extends Controller
         $startDate = Carbon::parse($startMonth . '-01')->startOfMonth();
         $endDate = Carbon::parse($endMonth . '-01')->endOfMonth();
 
-        // Calculate total working days (excluding weekends)
+        // Get holidays for the period
+        $holidayDates = Holiday::getHolidayDatesArray($startDate, $endDate);
+
+        // Calculate total working days (excluding weekends and holidays)
         $totalDays = 0;
         $current = $startDate->copy();
         while ($current <= $endDate) {
-            if ($current->dayOfWeek !== 0 && $current->dayOfWeek !== 6) {
+            if ($current->dayOfWeek !== 0 && $current->dayOfWeek !== 6 && !in_array($current->format('Y-m-d'), $holidayDates)) {
                 $totalDays++;
             }
             $current->addDay();
@@ -252,8 +262,8 @@ class ReportController extends Controller
 
             $currentDay = $startDate->copy();
             while ($currentDay <= $endDate) {
-                // Skip weekends (Saturday = 6, Sunday = 0)
-                if ($currentDay->dayOfWeek === 0 || $currentDay->dayOfWeek === 6) {
+                // Skip weekends and holidays
+                if ($currentDay->dayOfWeek === 0 || $currentDay->dayOfWeek === 6 || in_array($currentDay->format('Y-m-d'), $holidayDates)) {
                     $currentDay->addDay();
                     continue;
                 }
@@ -262,25 +272,27 @@ class ReportController extends Controller
                 $records = $attendanceByNisDate->get($key);
 
                 if ($records) {
-                    $checkIn = $records->where('checktype', 0)->first();
-                    $checkOut = $records->where('checktype', 1)->first();
-                    $specialStatus = $records->whereIn('checktype', [2, 3, 4])->first();
+                    $checkIn = $records->filter(fn($r) => (int) $r->checktype === 0)->first();
+                    $checkOut = $records->filter(fn($r) => (int) $r->checktype === 1)->first();
+                    $sakitRecord = $records->filter(fn($r) => (int) $r->checktype === 2)->first();
+                    $izinRecord = $records->filter(fn($r) => (int) $r->checktype === 3)->first();
 
-                    if ($specialStatus) {
-                        if ($specialStatus->checktype == 2) {
-                            $summary['sakit']++;
-                        } elseif ($specialStatus->checktype == 3) {
-                            $summary['izin']++;
-                        } elseif ($specialStatus->checktype == 4) {
-                            $summary['alpha']++;
-                        }
+                    // Priority: Sakit/Izin > Hadir (if check-in and check-out) > Bolos (check-in only) > Alpha
+                    if ($sakitRecord) {
+                        $summary['sakit']++;
+                    } elseif ($izinRecord) {
+                        $summary['izin']++;
+                    } elseif ($checkIn && $checkOut) {
+                        $summary['hadir']++;
                     } elseif ($checkIn) {
-                        if (!$checkOut) {
-                            $summary['bolos']++;
-                        } else {
-                            $summary['hadir']++;
-                        }
+                        $summary['bolos']++;
+                    } else {
+                        // Has records but no check-in (e.g., only Alpha record)
+                        $summary['alpha']++;
                     }
+                } else {
+                    // No attendance record at all = Alpha
+                    $summary['alpha']++;
                 }
 
                 $currentDay->addDay();
@@ -403,11 +415,14 @@ class ReportController extends Controller
         $start = Carbon::parse($startDate);
         $end = Carbon::parse($endDate);
 
-        // Build date list (excluding weekends)
+        // Get holidays for the period
+        $holidayDates = Holiday::getHolidayDatesArray($start, $end);
+
+        // Build date list (excluding weekends and holidays)
         $dates = [];
         $current = $start->copy();
         while ($current <= $end) {
-            if ($current->dayOfWeek !== 0 && $current->dayOfWeek !== 6) {
+            if ($current->dayOfWeek !== 0 && $current->dayOfWeek !== 6 && !in_array($current->format('Y-m-d'), $holidayDates)) {
                 $dates[] = $current->copy();
             }
             $current->addDay();
@@ -452,30 +467,33 @@ class ReportController extends Controller
                 $status = '-';
 
                 if ($records) {
-                    $checkIn = $records->where('checktype', 0)->first();
-                    $checkOut = $records->where('checktype', 1)->first();
-                    $specialStatus = $records->whereIn('checktype', [2, 3, 4])->first();
+                    $checkIn = $records->filter(fn($r) => (int) $r->checktype === 0)->first();
+                    $checkOut = $records->filter(fn($r) => (int) $r->checktype === 1)->first();
+                    $sakitRecord = $records->filter(fn($r) => (int) $r->checktype === 2)->first();
+                    $izinRecord = $records->filter(fn($r) => (int) $r->checktype === 3)->first();
 
-                    if ($specialStatus) {
-                        if ($specialStatus->checktype == 2) {
-                            $status = 'S';
-                            $summary['sakit']++;
-                        } elseif ($specialStatus->checktype == 3) {
-                            $status = 'I';
-                            $summary['izin']++;
-                        } elseif ($specialStatus->checktype == 4) {
-                            $status = 'A';
-                            $summary['alpha']++;
-                        }
+                    // Priority: Sakit/Izin > Hadir (if check-in and check-out) > Bolos (check-in only) > Alpha
+                    if ($sakitRecord) {
+                        $status = 'S';
+                        $summary['sakit']++;
+                    } elseif ($izinRecord) {
+                        $status = 'I';
+                        $summary['izin']++;
+                    } elseif ($checkIn && $checkOut) {
+                        $status = 'H';
+                        $summary['hadir']++;
                     } elseif ($checkIn) {
-                        if (!$checkOut) {
-                            $status = 'B';
-                            $summary['bolos']++;
-                        } else {
-                            $status = 'H';
-                            $summary['hadir']++;
-                        }
+                        $status = 'B';
+                        $summary['bolos']++;
+                    } else {
+                        // Has records but no check-in (e.g., only Alpha record)
+                        $status = 'A';
+                        $summary['alpha']++;
                     }
+                } else {
+                    // No attendance record at all = Alpha
+                    $status = 'A';
+                    $summary['alpha']++;
                 }
 
                 $attendanceMatrix[$student->nis][$date->format('Y-m-d')] = $status;
@@ -522,7 +540,7 @@ class ReportController extends Controller
 
         $filename = 'laporan_presensi_' . $startDate . '_sd_' . $endDate . $kelasName . '.pdf';
 
-        return $pdf->download($filename);
+        return $pdf->stream($filename);
     }
 
     /**
@@ -540,11 +558,14 @@ class ReportController extends Controller
         $startDate = Carbon::parse($startMonth . '-01')->startOfMonth();
         $endDate = Carbon::parse($endMonth . '-01')->endOfMonth();
 
-        // Calculate total working days (excluding weekends)
+        // Get holidays for the period
+        $holidayDates = Holiday::getHolidayDatesArray($startDate, $endDate);
+
+        // Calculate total working days (excluding weekends and holidays)
         $totalDays = 0;
         $current = $startDate->copy();
         while ($current <= $endDate) {
-            if ($current->dayOfWeek !== 0 && $current->dayOfWeek !== 6) {
+            if ($current->dayOfWeek !== 0 && $current->dayOfWeek !== 6 && !in_array($current->format('Y-m-d'), $holidayDates)) {
                 $totalDays++;
             }
             $current->addDay();
@@ -580,8 +601,8 @@ class ReportController extends Controller
 
             $currentDay = $startDate->copy();
             while ($currentDay <= $endDate) {
-                // Skip weekends
-                if ($currentDay->dayOfWeek === 0 || $currentDay->dayOfWeek === 6) {
+                // Skip weekends and holidays
+                if ($currentDay->dayOfWeek === 0 || $currentDay->dayOfWeek === 6 || in_array($currentDay->format('Y-m-d'), $holidayDates)) {
                     $currentDay->addDay();
                     continue;
                 }
@@ -590,25 +611,27 @@ class ReportController extends Controller
                 $records = $attendanceByNisDate->get($key);
 
                 if ($records) {
-                    $checkIn = $records->where('checktype', 0)->first();
-                    $checkOut = $records->where('checktype', 1)->first();
-                    $specialStatus = $records->whereIn('checktype', [2, 3, 4])->first();
+                    $checkIn = $records->filter(fn($r) => (int) $r->checktype === 0)->first();
+                    $checkOut = $records->filter(fn($r) => (int) $r->checktype === 1)->first();
+                    $sakitRecord = $records->filter(fn($r) => (int) $r->checktype === 2)->first();
+                    $izinRecord = $records->filter(fn($r) => (int) $r->checktype === 3)->first();
 
-                    if ($specialStatus) {
-                        if ($specialStatus->checktype == 2) {
-                            $summary['sakit']++;
-                        } elseif ($specialStatus->checktype == 3) {
-                            $summary['izin']++;
-                        } elseif ($specialStatus->checktype == 4) {
-                            $summary['alpha']++;
-                        }
+                    // Priority: Sakit/Izin > Hadir (if check-in and check-out) > Bolos (check-in only) > Alpha
+                    if ($sakitRecord) {
+                        $summary['sakit']++;
+                    } elseif ($izinRecord) {
+                        $summary['izin']++;
+                    } elseif ($checkIn && $checkOut) {
+                        $summary['hadir']++;
                     } elseif ($checkIn) {
-                        if (!$checkOut) {
-                            $summary['bolos']++;
-                        } else {
-                            $summary['hadir']++;
-                        }
+                        $summary['bolos']++;
+                    } else {
+                        // Has records but no check-in (e.g., only Alpha record)
+                        $summary['alpha']++;
                     }
+                } else {
+                    // No attendance record at all = Alpha
+                    $summary['alpha']++;
                 }
 
                 $currentDay->addDay();
@@ -656,7 +679,7 @@ class ReportController extends Controller
         $kelasName = $kelasInfo ? '_' . str_replace(' ', '_', $kelasInfo->nm_kls) : '';
         $filename = 'laporan_bulanan_' . $startMonth . '_sd_' . $endMonth . $kelasName . '.pdf';
 
-        return $pdf->download($filename);
+        return $pdf->stream($filename);
     }
 }
 

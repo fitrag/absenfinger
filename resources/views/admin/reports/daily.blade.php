@@ -294,7 +294,7 @@
                 </button>
             </div>
 
-            <form id="pdfForm" action="{{ route('admin.reports.daily.pdf') }}" method="GET">
+            <form id="pdfForm" action="{{ route('admin.reports.daily.pdf') }}" method="GET" target="_blank">
                 <input type="hidden" name="start_date" value="{{ $startDate }}">
                 <input type="hidden" name="end_date" value="{{ $endDate }}">
                 <input type="hidden" name="kelas_id" value="{{ $kelasId }}">

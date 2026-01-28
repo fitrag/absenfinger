@@ -209,13 +209,15 @@
                             </svg>
                         </button>
                     </div>
-                    <form action="{{ route('admin.guru.jurnal.store') }}" method="POST">
+                    <form action="{{ route('admin.guru.jurnal.store') }}" method="POST" @submit="populateAttendanceData">
                         @csrf
+                        <input type="hidden" name="student_attendance" :value="JSON.stringify(studentAttendance)">
                         <div class="space-y-4">
                             <!-- Tanggal -->
                             <div>
                                 <label class="block text-sm font-medium text-slate-300 mb-1">Tanggal</label>
                                 <input type="date" name="tanggal" x-model="formData.tanggal"
+                                    @change="if(formData.kelas_id) loadStudents(formData.kelas_id, false)"
                                     class="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white focus:border-blue-500">
                             </div>
 
@@ -257,93 +259,6 @@
                                     </select>
                                 </div>
 
-                                <!-- Absensi Siswa -->
-                                <div>
-                                    <label class="block text-sm font-medium text-slate-300 mb-2">Absensi Siswa</label>
-                                    <textarea name="absensi" x-model="formData.absensi" rows="6"
-                                        class="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white focus:border-blue-500 mb-2"
-                                        placeholder="Hasil absensi siswa..."></textarea>
-
-                                    <!-- Loading state -->
-                                    <div x-show="loadingStudents" class="text-center py-4 text-slate-400">
-                                        <svg class="animate-spin h-5 w-5 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg"
-                                            fill="none" viewBox="0 0 24 24">
-                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                                stroke-width="4"></circle>
-                                            <path class="opacity-75" fill="currentColor"
-                                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                                            </path>
-                                        </svg>
-                                        Memuat data siswa...
-                                    </div>
-
-                                    <!-- No kelas selected -->
-                                    <div x-show="!formData.kelas_id && !loadingStudents"
-                                        class="text-center py-4 text-slate-500 bg-slate-800/50 rounded-xl">
-                                        Pilih kelas terlebih dahulu
-                                    </div>
-
-                                    <!-- Students list -->
-                                    <div x-show="students.length > 0 && !loadingStudents"
-                                        class="bg-slate-800/50 rounded-xl overflow-hidden">
-                                        <!-- Summary -->
-                                        <div class="px-3 py-2 bg-slate-700/50 flex items-center justify-between text-xs">
-                                            <span class="text-slate-300">Total: <span class="font-semibold text-white"
-                                                    x-text="students.length"></span> siswa</span>
-                                            <div class="flex gap-3">
-                                                <span class="text-green-400">H: <span
-                                                        x-text="getAttendanceCount('H')"></span></span>
-                                                <span class="text-yellow-400">S: <span
-                                                        x-text="getAttendanceCount('S')"></span></span>
-                                                <span class="text-blue-400">I: <span
-                                                        x-text="getAttendanceCount('I')"></span></span>
-                                                <span class="text-red-400">A: <span
-                                                        x-text="getAttendanceCount('A')"></span></span>
-                                                <span class="text-purple-400">AL: <span
-                                                        x-text="getAttendanceCount('AL')"></span></span>
-                                            </div>
-                                        </div>
-                                        <!-- Student list with scroll -->
-                                        <div class="max-h-48 overflow-y-auto">
-                                            <template x-for="(student, index) in students" :key="student.id">
-                                                <div
-                                                    class="flex items-center justify-between px-3 py-2 border-b border-slate-700/50 hover:bg-slate-700/30">
-                                                    <div class="flex items-center gap-2">
-                                                        <span class="text-slate-500 text-xs w-6" x-text="index + 1"></span>
-                                                        <span class="text-white text-sm" x-text="student.name"></span>
-                                                    </div>
-                                                    <div class="flex gap-2">
-                                                        <button type="button" @click="setAttendance(student.id, 'H')"
-                                                            :class="studentAttendance[student.id] === 'H' || !studentAttendance[student.id] ? 'bg-green-500 text-white shadow-lg shadow-green-500/30 ring-2 ring-green-400/50 scale-105' : 'bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-green-400'"
-                                                            class="w-8 h-8 rounded-lg font-bold text-xs transition-all duration-200 cursor-pointer flex items-center justify-center hover:scale-110 active:scale-95">H</button>
-
-                                                        <button type="button" @click="setAttendance(student.id, 'S')"
-                                                            :class="studentAttendance[student.id] === 'S' ? 'bg-yellow-500 text-white shadow-lg shadow-yellow-500/30 ring-2 ring-yellow-400/50 scale-105' : 'bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-yellow-400'"
-                                                            class="w-8 h-8 rounded-lg font-bold text-xs transition-all duration-200 cursor-pointer flex items-center justify-center hover:scale-110 active:scale-95">S</button>
-
-                                                        <button type="button" @click="setAttendance(student.id, 'I')"
-                                                            :class="studentAttendance[student.id] === 'I' ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30 ring-2 ring-blue-400/50 scale-105' : 'bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-blue-400'"
-                                                            class="w-8 h-8 rounded-lg font-bold text-xs transition-all duration-200 cursor-pointer flex items-center justify-center hover:scale-110 active:scale-95">I</button>
-
-                                                        <button type="button" @click="setAttendance(student.id, 'A')"
-                                                            :class="studentAttendance[student.id] === 'A' ? 'bg-red-500 text-white shadow-lg shadow-red-500/30 ring-2 ring-red-400/50 scale-105' : 'bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-red-400'"
-                                                            class="w-8 h-8 rounded-lg font-bold text-xs transition-all duration-200 cursor-pointer flex items-center justify-center hover:scale-110 active:scale-95">A</button>
-
-                                                        <button type="button" @click="setAttendance(student.id, 'AL')"
-                                                            :class="studentAttendance[student.id] === 'AL' ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/30 ring-2 ring-purple-400/50 scale-105' : 'bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-purple-400'"
-                                                            class="w-8 h-8 rounded-lg font-bold text-xs transition-all duration-200 cursor-pointer flex items-center justify-center hover:scale-110 active:scale-95">AL</button>
-                                                    </div>
-                                                </div>
-                                            </template>
-                                        </div>
-                                    </div>
-
-                                    <!-- Empty state -->
-                                    <div x-show="formData.kelas_id && students.length === 0 && !loadingStudents"
-                                        class="text-center py-4 text-slate-500 bg-slate-800/50 rounded-xl">
-                                        Tidak ada siswa di kelas ini
-                                    </div>
-                                </div>
                                 <!-- Mapel -->
                                 <div>
                                     <label class="block text-sm font-medium text-slate-300 mb-1">Mapel</label>
@@ -354,6 +269,94 @@
                                             <option value="{{ $m->id }}">{{ $m->nm_mapel }}</option>
                                         @endforeach
                                     </select>
+                                </div>
+                            </div>
+
+                            <!-- Absensi Siswa (Full Width, Below Kelas) -->
+                            <div>
+                                <label class="block text-sm font-medium text-slate-300 mb-2">Absensi Siswa</label>
+                                <textarea name="absensi" x-model="formData.absensi" rows="3"
+                                    class="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white focus:border-blue-500 mb-2"
+                                    placeholder="Hasil absensi siswa..."></textarea>
+
+                                <!-- Loading state -->
+                                <div x-show="loadingStudents" class="text-center py-4 text-slate-400">
+                                    <svg class="animate-spin h-5 w-5 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg"
+                                        fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                            stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                        </path>
+                                    </svg>
+                                    Memuat data siswa...
+                                </div>
+
+                                <!-- No kelas selected -->
+                                <div x-show="!formData.kelas_id && !loadingStudents"
+                                    class="text-center py-4 text-slate-500 bg-slate-800/50 rounded-xl">
+                                    Pilih kelas terlebih dahulu
+                                </div>
+
+                                <!-- Students list -->
+                                <div x-show="students.length > 0 && !loadingStudents"
+                                    class="bg-slate-800/50 rounded-xl overflow-hidden">
+                                    <!-- Summary -->
+                                    <div class="px-3 py-2 bg-slate-700/50 flex items-center justify-between text-xs">
+                                        <span class="text-slate-300">Total: <span class="font-semibold text-white"
+                                                x-text="students.length"></span> siswa</span>
+                                        <div class="flex gap-3">
+                                            <span class="text-green-400">H: <span
+                                                    x-text="getAttendanceCount('H')"></span></span>
+                                            <span class="text-yellow-400">S: <span
+                                                    x-text="getAttendanceCount('S')"></span></span>
+                                            <span class="text-blue-400">I: <span
+                                                    x-text="getAttendanceCount('I')"></span></span>
+                                            <span class="text-red-400">A: <span
+                                                    x-text="getAttendanceCount('A')"></span></span>
+                                            <span class="text-purple-400">AL: <span
+                                                    x-text="getAttendanceCount('AL')"></span></span>
+                                        </div>
+                                    </div>
+                                    <!-- Student list with scroll -->
+                                    <div class="max-h-48 overflow-y-auto">
+                                        <template x-for="(student, index) in students" :key="student.id">
+                                            <div
+                                                class="flex items-center justify-between px-3 py-2 border-b border-slate-700/50 hover:bg-slate-700/30">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-slate-500 text-xs w-6" x-text="index + 1"></span>
+                                                    <span class="text-white text-sm" x-text="student.name"></span>
+                                                </div>
+                                                <div class="flex gap-2">
+                                                    <button type="button" @click="setAttendance(student.id, 'H')"
+                                                        :class="studentAttendance[student.id] === 'H' || !studentAttendance[student.id] ? 'bg-green-500 text-white shadow-lg shadow-green-500/30 ring-2 ring-green-400/50 scale-105' : 'bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-green-400'"
+                                                        class="w-8 h-8 rounded-lg font-bold text-xs transition-all duration-200 cursor-pointer flex items-center justify-center hover:scale-110 active:scale-95">H</button>
+
+                                                    <button type="button" @click="setAttendance(student.id, 'S')"
+                                                        :class="studentAttendance[student.id] === 'S' ? 'bg-yellow-500 text-white shadow-lg shadow-yellow-500/30 ring-2 ring-yellow-400/50 scale-105' : 'bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-yellow-400'"
+                                                        class="w-8 h-8 rounded-lg font-bold text-xs transition-all duration-200 cursor-pointer flex items-center justify-center hover:scale-110 active:scale-95">S</button>
+
+                                                    <button type="button" @click="setAttendance(student.id, 'I')"
+                                                        :class="studentAttendance[student.id] === 'I' ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30 ring-2 ring-blue-400/50 scale-105' : 'bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-blue-400'"
+                                                        class="w-8 h-8 rounded-lg font-bold text-xs transition-all duration-200 cursor-pointer flex items-center justify-center hover:scale-110 active:scale-95">I</button>
+
+                                                    <button type="button" @click="setAttendance(student.id, 'A')"
+                                                        :class="studentAttendance[student.id] === 'A' ? 'bg-red-500 text-white shadow-lg shadow-red-500/30 ring-2 ring-red-400/50 scale-105' : 'bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-red-400'"
+                                                        class="w-8 h-8 rounded-lg font-bold text-xs transition-all duration-200 cursor-pointer flex items-center justify-center hover:scale-110 active:scale-95">A</button>
+
+                                                    <button type="button" @click="setAttendance(student.id, 'AL')"
+                                                        :class="studentAttendance[student.id] === 'AL' ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/30 ring-2 ring-purple-400/50 scale-105' : 'bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-purple-400'"
+                                                        class="w-8 h-8 rounded-lg font-bold text-xs transition-all duration-200 cursor-pointer flex items-center justify-center hover:scale-110 active:scale-95">AL</button>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+
+                                <!-- Empty state -->
+                                <div x-show="formData.kelas_id && students.length === 0 && !loadingStudents"
+                                    class="text-center py-4 text-slate-500 bg-slate-800/50 rounded-xl">
+                                    Tidak ada siswa di kelas ini
                                 </div>
                             </div>
 
@@ -427,14 +430,17 @@
                             </svg>
                         </button>
                     </div>
-                    <form :action="`{{ url('admin/guru/jurnal') }}/${editId}`" method="POST">
+                    <form :action="`{{ url('admin/guru/jurnal') }}/${editId}`" method="POST"
+                        @submit="populateAttendanceData">
                         @csrf
                         @method('PUT')
+                        <input type="hidden" name="student_attendance" :value="JSON.stringify(studentAttendance)">
                         <div class="space-y-4">
                             <!-- Tanggal -->
                             <div>
                                 <label class="block text-sm font-medium text-slate-300 mb-1">Tanggal</label>
                                 <input type="date" name="tanggal" x-model="formData.tanggal"
+                                    @change="if(formData.kelas_id) loadStudents(formData.kelas_id, false)"
                                     class="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white focus:border-blue-500">
                             </div>
 
@@ -641,6 +647,31 @@
         </div>
     @endif
 
+    @if($errors->any())
+        <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 8000)"
+            class="fixed bottom-4 right-4 px-4 py-3 bg-rose-500 text-white rounded-xl shadow-lg z-50 max-w-md">
+            <div class="flex items-start gap-2">
+                <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div>
+                    <p class="font-semibold mb-1">Terjadi kesalahan:</p>
+                    <ul class="text-sm list-disc list-inside">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            </div>
+            <button @click="show = false" class="absolute top-2 right-2 text-white/80 hover:text-white">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    @endif
+
     <script>
         function jurnalPage() {
             return {
@@ -671,11 +702,14 @@
                 async loadStudents(kelasId, updateSummary = true) {
                     this.loadingStudents = true;
                     this.students = [];
+                    // Keep existing attendance if we are just reloading but keeping same date/class context? 
+                    // No, we should reload from server truth unless we want to persist unsaved changes.
+                    // For now, reload from server.
                     this.studentAttendance = {};
 
                     try {
-                        // Use a dedicated route for fetching students consistently
-                        const url = `{{ route('admin.guru.jurnal.students', ['kelas_id' => ':id']) }}`.replace(':id', kelasId);
+                        const tanggal = this.formData.tanggal;
+                        const url = `{{ route('admin.guru.jurnal.students', ['kelas_id' => ':id']) }}?tanggal=${tanggal}`.replace(':id', kelasId);
                         const response = await fetch(url);
 
                         if (!response.ok) throw new Error('Network response was not ok');
@@ -683,9 +717,13 @@
                         const data = await response.json();
                         this.students = data;
 
-                        // Set default all students to Hadir if not set
+                        // Set attendance based on server data (initial_status)
                         data.forEach(student => {
-                            this.studentAttendance[student.id] = 'H';
+                            if (student.initial_status) {
+                                this.studentAttendance[student.id] = student.initial_status;
+                            } else {
+                                this.studentAttendance[student.id] = 'H';
+                            }
                         });
 
                         // Only update summary if requested (e.g. new journal)
@@ -817,6 +855,18 @@
                     if (kelasId) {
                         this.loadStudents(kelasId, true);
                     }
+                },
+
+                // Populate default H status for students without explicit status before form submit
+                populateAttendanceData() {
+                    // Ensure all students have a status (default to H if not set)
+                    this.students.forEach(student => {
+                        if (!this.studentAttendance[student.id]) {
+                            this.studentAttendance[student.id] = 'H';
+                        }
+                    });
+                    // Allow form submission to continue
+                    return true;
                 }
             }
         }

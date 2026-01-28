@@ -238,6 +238,7 @@
                 <th style="width: 60px;">Poin</th>
                 <th>Tindakan</th>
                 <th style="width: 80px;">Status</th>
+                <th style="width: 80px;">TTD Siswa</th>
                 <th style="width: 100px;">Yang Menindak</th>
             </tr>
         </thead>
@@ -269,18 +270,25 @@
                     <td class="center" style="color: #dc2626; font-weight: bold;">{{ $item->poin }}</td>
                     <td>{{ $item->tindakan ?? '-' }}</td>
                     <td class="center {{ $statusClass }}"><strong>{{ $statusLabel }}</strong></td>
+                    <td class="center">
+                        @if($item->ttd_siswa)
+                            <img src="{{ $item->ttd_siswa }}" style="max-height: 40px; max-width: 70px;">
+                        @else
+                            -
+                        @endif
+                    </td>
                     <td class="center">{{ $item->creator->name ?? '-' }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" class="center" style="padding: 20px;">Tidak ada data pelanggaran</td>
+                    <td colspan="8" class="center" style="padding: 20px;">Tidak ada data pelanggaran</td>
                 </tr>
             @endforelse
             @if($pelanggarans->count() > 0)
                 <tr class="total-row">
                     <td colspan="3" class="right">Total Poin Pelanggaran:</td>
                     <td class="center" style="color: #dc2626;">{{ $totalPoin }}</td>
-                    <td colspan="3"></td>
+                    <td colspan="4"></td>
                 </tr>
             @endif
         </tbody>
@@ -309,7 +317,16 @@
         </div>
         <div style="text-align: center; width: 30%;">
             <p>Siswa,</p>
-            <br><br><br><br>
+            @php
+                $latestSignature = $pelanggarans->whereNotNull('ttd_siswa')->first();
+            @endphp
+            @if($latestSignature && $latestSignature->ttd_siswa)
+                <div style="height: 60px; display: flex; align-items: center; justify-content: center;">
+                    
+                </div>
+            @else
+                <br><br><br><br>
+            @endif
             <p><strong>{{ $student->name }}</strong></p>
         </div>
         <div style="text-align: center; width: 30%;">

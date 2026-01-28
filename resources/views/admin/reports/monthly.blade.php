@@ -214,7 +214,7 @@
                 </button>
             </div>
 
-            <form id="pdfForm" action="{{ route('admin.reports.monthly.pdf') }}" method="GET">
+            <form id="pdfForm" action="{{ route('admin.reports.monthly.pdf') }}" method="GET" target="_blank">
                 <input type="hidden" name="start_month" value="{{ $startMonth }}">
                 <input type="hidden" name="end_month" value="{{ $endMonth }}">
                 <input type="hidden" name="kelas_id" value="{{ $kelasId }}">

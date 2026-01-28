@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\PdsPelanggaran;
 use App\Models\Student;
 use App\Models\Kelas;
+use App\Models\TahunPelajaran;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 
@@ -16,7 +18,24 @@ class PelanggaranController extends Controller
      */
     public function index(Request $request)
     {
+        // Get active TP from Settings
+        $activeTpId = Setting::get('active_academic_year');
+        $tpAktif = $activeTpId ? TahunPelajaran::find($activeTpId) : null;
+
+        // Fallback to is_active if not set in settings
+        if (!$tpAktif) {
+            $tpAktif = TahunPelajaran::where('is_active', true)->first();
+        }
+
+        // Get active semester from Settings
+        $semesterAktif = Setting::get('active_semester') ?? 'Ganjil';
+
         $query = PdsPelanggaran::with(['student.kelas']);
+
+        // Default: filter by active TP
+        if ($tpAktif) {
+            $query->where('tp_id', $tpAktif->id);
+        }
 
         // Filter by date
         if ($request->filled('tanggal')) {
@@ -30,9 +49,9 @@ class PelanggaranController extends Controller
             });
         }
 
-        // Filter by status
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
+        // Filter by semester
+        if ($request->filled('semester')) {
+            $query->where('semester', $request->semester);
         }
 
         // Search by student name or NIS
@@ -54,7 +73,7 @@ class PelanggaranController extends Controller
         $kelasList = Kelas::orderBy('nm_kls')->get();
         $studentsList = Student::with('kelas')->where('is_active', true)->orderBy('name')->get();
 
-        return view('admin.kesiswaan.pelanggaran.index', compact('pelanggarans', 'kelasList', 'studentsList'));
+        return view('admin.kesiswaan.pelanggaran.index', compact('pelanggarans', 'kelasList', 'studentsList', 'tpAktif', 'semesterAktif'));
     }
 
     /**
@@ -70,13 +89,84 @@ class PelanggaranController extends Controller
             'deskripsi' => 'nullable|string',
             'tindakan' => 'nullable|string|max:255',
             'keterangan' => 'nullable|string',
+            'foto_bukti' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'ttd_siswa' => 'nullable|string',
             'status' => 'required|in:pending,diproses,selesai',
+            'tp_id' => 'nullable|exists:m_tp,id',
+            'semester' => 'nullable|in:Ganjil,Genap',
         ], [
             'student_id.required' => 'Siswa wajib dipilih',
             'tanggal.required' => 'Tanggal wajib diisi',
             'jenis_pelanggaran.required' => 'Jenis pelanggaran wajib diisi',
             'poin.required' => 'Poin wajib diisi',
+            'foto_bukti.image' => 'File harus berupa gambar',
+            'foto_bukti.max' => 'Ukuran file maksimal 2MB',
         ]);
+
+        // Handle photo upload with compression
+        $fotoPath = null;
+        if ($request->hasFile('foto_bukti')) {
+            $file = $request->file('foto_bukti');
+            $filename = time() . '_' . uniqid() . '.jpg';
+            $destinationPath = storage_path('app/public/pelanggaran/foto');
+
+            // Create directory if it doesn't exist
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0755, true);
+            }
+
+            // Get image info
+            $imageInfo = getimagesize($file->getRealPath());
+            $mimeType = $imageInfo['mime'];
+
+            // Create image resource based on mime type
+            switch ($mimeType) {
+                case 'image/jpeg':
+                    $image = imagecreatefromjpeg($file->getRealPath());
+                    break;
+                case 'image/png':
+                    $image = imagecreatefrompng($file->getRealPath());
+                    break;
+                case 'image/gif':
+                    $image = imagecreatefromgif($file->getRealPath());
+                    break;
+                default:
+                    $image = imagecreatefromjpeg($file->getRealPath());
+            }
+
+            // Resize if image is too large (max 1920px width)
+            $originalWidth = imagesx($image);
+            $originalHeight = imagesy($image);
+            $maxWidth = 1920;
+
+            if ($originalWidth > $maxWidth) {
+                $ratio = $maxWidth / $originalWidth;
+                $newWidth = $maxWidth;
+                $newHeight = intval($originalHeight * $ratio);
+
+                $resizedImage = imagecreatetruecolor($newWidth, $newHeight);
+                imagecopyresampled($resizedImage, $image, 0, 0, 0, 0, $newWidth, $newHeight, $originalWidth, $originalHeight);
+                imagedestroy($image);
+                $image = $resizedImage;
+            }
+
+            // Compress with quality adjustment to target ~800KB
+            $quality = 85; // Start with 85% quality
+            $targetSize = 800 * 1024; // 800 KB in bytes
+            $fullPath = $destinationPath . '/' . $filename;
+
+            // Save with initial quality
+            imagejpeg($image, $fullPath, $quality);
+
+            // Reduce quality until file is under target size
+            while (filesize($fullPath) > $targetSize && $quality > 30) {
+                $quality -= 10;
+                imagejpeg($image, $fullPath, $quality);
+            }
+
+            imagedestroy($image);
+            $fotoPath = 'pelanggaran/foto/' . $filename;
+        }
 
         PdsPelanggaran::create([
             'student_id' => $request->student_id,
@@ -86,7 +176,11 @@ class PelanggaranController extends Controller
             'deskripsi' => $request->deskripsi,
             'tindakan' => $request->tindakan,
             'keterangan' => $request->keterangan,
+            'foto_bukti' => $fotoPath,
+            'ttd_siswa' => $request->ttd_siswa,
             'status' => $request->status,
+            'tp_id' => $request->tp_id,
+            'semester' => $request->semester,
             'created_by' => Session::get('user_id'),
         ]);
 
@@ -107,7 +201,11 @@ class PelanggaranController extends Controller
             'deskripsi' => 'nullable|string',
             'tindakan' => 'nullable|string|max:255',
             'keterangan' => 'nullable|string',
+            'foto_bukti' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'ttd_siswa' => 'nullable|string',
             'status' => 'required|in:pending,diproses,selesai',
+            'tp_id' => 'nullable|exists:m_tp,id',
+            'semester' => 'nullable|in:Ganjil,Genap',
         ]);
 
         $updateData = [
@@ -119,7 +217,81 @@ class PelanggaranController extends Controller
             'tindakan' => $request->tindakan,
             'keterangan' => $request->keterangan,
             'status' => $request->status,
+            'tp_id' => $request->tp_id,
+            'semester' => $request->semester,
         ];
+
+        // Handle photo upload with compression
+        if ($request->hasFile('foto_bukti')) {
+            // Delete old photo if exists
+            if ($pelanggaran->foto_bukti && \Storage::disk('public')->exists($pelanggaran->foto_bukti)) {
+                \Storage::disk('public')->delete($pelanggaran->foto_bukti);
+            }
+
+            $file = $request->file('foto_bukti');
+            $filename = time() . '_' . uniqid() . '.jpg';
+            $destinationPath = storage_path('app/public/pelanggaran/foto');
+
+            // Create directory if it doesn't exist
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0755, true);
+            }
+
+            // Get image info
+            $imageInfo = getimagesize($file->getRealPath());
+            $mimeType = $imageInfo['mime'];
+
+            // Create image resource based on mime type
+            switch ($mimeType) {
+                case 'image/jpeg':
+                    $image = imagecreatefromjpeg($file->getRealPath());
+                    break;
+                case 'image/png':
+                    $image = imagecreatefrompng($file->getRealPath());
+                    break;
+                case 'image/gif':
+                    $image = imagecreatefromgif($file->getRealPath());
+                    break;
+                default:
+                    $image = imagecreatefromjpeg($file->getRealPath());
+            }
+
+            // Resize if image is too large (max 1920px width)
+            $originalWidth = imagesx($image);
+            $originalHeight = imagesy($image);
+            $maxWidth = 1920;
+
+            if ($originalWidth > $maxWidth) {
+                $ratio = $maxWidth / $originalWidth;
+                $newWidth = $maxWidth;
+                $newHeight = intval($originalHeight * $ratio);
+
+                $resizedImage = imagecreatetruecolor($newWidth, $newHeight);
+                imagecopyresampled($resizedImage, $image, 0, 0, 0, 0, $newWidth, $newHeight, $originalWidth, $originalHeight);
+                imagedestroy($image);
+                $image = $resizedImage;
+            }
+
+            // Compress with quality adjustment to target ~800KB
+            $quality = 85;
+            $targetSize = 800 * 1024;
+            $fullPath = $destinationPath . '/' . $filename;
+
+            imagejpeg($image, $fullPath, $quality);
+
+            while (filesize($fullPath) > $targetSize && $quality > 30) {
+                $quality -= 10;
+                imagejpeg($image, $fullPath, $quality);
+            }
+
+            imagedestroy($image);
+            $updateData['foto_bukti'] = 'pelanggaran/foto/' . $filename;
+        }
+
+        // Handle signature
+        if ($request->filled('ttd_siswa')) {
+            $updateData['ttd_siswa'] = $request->ttd_siswa;
+        }
 
         // Set created_by if it's null (for old records)
         if (empty($pelanggaran->created_by)) {

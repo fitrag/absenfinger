@@ -110,7 +110,7 @@
             @endphp
 
             @forelse($groupedPkls as $dudiName => $pkls)
-                <div class="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-2xl overflow-hidden">
+                <div class="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-2xl">
                     <!-- Group Header -->
                     <div class="px-6 py-4 bg-slate-800/50 border-b border-slate-700/50 flex items-center gap-3">
                         <div class="p-2 bg-amber-500/10 rounded-lg">
@@ -125,7 +125,7 @@
                     </div>
 
                     <!-- Table -->
-                    <div class="overflow-x-auto">
+                    <div class="overflow-x-auto overflow-y-visible">
                         <table class="w-full">
                             <thead>
                                 <tr class="bg-slate-800/30 border-b border-slate-700/50 text-left">

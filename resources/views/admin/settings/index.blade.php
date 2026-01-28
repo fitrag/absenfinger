@@ -60,6 +60,40 @@
                 </div>
             </div>
 
+            <!-- Academic Year Settings -->
+            <div class="rounded-xl bg-slate-900/50 border border-slate-800/50 p-6">
+                <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Tahun Pelajaran & Semester
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Tahun Pelajaran Aktif</label>
+                        <select name="active_academic_year"
+                            class="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white text-sm focus:outline-none focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/50">
+                            <option value="">-- Pilih Tahun Pelajaran --</option>
+                            @foreach($tahunPelajaranList as $tp)
+                                <option value="{{ $tp->id }}" {{ ($settings['active_academic_year'] ?? '') == $tp->id ? 'selected' : '' }}>{{ $tp->nm_tp }}</option>
+                            @endforeach
+                        </select>
+                        <p class="text-xs text-slate-500 mt-1">Pilih tahun pelajaran yang sedang berjalan</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Semester Aktif</label>
+                        <select name="active_semester"
+                            class="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white text-sm focus:outline-none focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/50">
+                            <option value="">-- Pilih Semester --</option>
+                            <option value="Ganjil" {{ ($settings['active_semester'] ?? '') == 'Ganjil' ? 'selected' : '' }}>Ganjil</option>
+                            <option value="Genap" {{ ($settings['active_semester'] ?? '') == 'Genap' ? 'selected' : '' }}>Genap</option>
+                        </select>
+                        <p class="text-xs text-slate-500 mt-1">Semester yang sedang berjalan</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Logo Section (Smaller) -->
             <div class="rounded-xl bg-slate-900/50 border border-slate-800/50 p-6">
                 <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">

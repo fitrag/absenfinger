@@ -85,16 +85,16 @@ class AttendanceController extends Controller
                 'success' => true,
                 'message' => $result['message'],
             ];
-            
+
             if (isset($result['attendance'])) {
                 $response['data'] = $result['attendance'];
             }
-            
+
             if ($result['skipped'] ?? false) {
                 $response['skipped'] = true;
                 return response()->json($response, 200);
             }
-            
+
             return response()->json($response, 201);
         }
 
@@ -277,6 +277,93 @@ class AttendanceController extends Controller
             'success' => true,
             'summary' => $summary,
             'recent' => $recentAttendances
+        ]);
+    }
+
+    /**
+     * Get students with absence status (sakit/izin).
+     * 
+     * Endpoint: GET /api/attendance/absences
+     * 
+     * Query Parameters:
+     * - date: Filter by specific date (Y-m-d format)
+     * - start_date: Start date for range filter
+     * - end_date: End date for range filter
+     * - status: Filter by status (sakit, izin, or all for both)
+     * - kelas_id: Filter by class ID
+     * - per_page: Number of records per page (default: 50)
+     */
+    public function absences(Request $request): JsonResponse
+    {
+        $query = Attendance::with(['student.kelas', 'student.jurusan'])
+            ->whereIn('checktype', [
+                Attendance::TYPE_SAKIT,
+                Attendance::TYPE_IZIN,
+            ]);
+
+        // Filter by specific date
+        if ($request->has('date')) {
+            $query->whereDate('checktime', $request->date);
+        }
+
+        // Filter by date range
+        if ($request->has('start_date') && $request->has('end_date')) {
+            $query->whereBetween('checktime', [
+                $request->start_date . ' 00:00:00',
+                $request->end_date . ' 23:59:59'
+            ]);
+        }
+
+        // Default to today if no date filter provided
+        if (!$request->has('date') && !$request->has('start_date')) {
+            $query->whereDate('checktime', now()->toDateString());
+        }
+
+        // Filter by specific status
+        if ($request->has('status')) {
+            if ($request->status === 'sakit') {
+                $query->where('checktype', Attendance::TYPE_SAKIT);
+            } elseif ($request->status === 'izin') {
+                $query->where('checktype', Attendance::TYPE_IZIN);
+            }
+        }
+
+        // Filter by kelas ID
+        if ($request->has('kelas_id')) {
+            $query->whereHas('student', function ($q) use ($request) {
+                $q->where('kelas_id', $request->kelas_id);
+            });
+        }
+
+        $absences = $query->orderBy('checktime', 'desc')->get();
+
+        // Transform response data
+        $data = $absences->map(function ($absence) {
+            return [
+                'id' => $absence->id,
+                'nama' => $absence->student->name ?? null,
+                'no_tlp' => $absence->student->no_tlp ?? null,
+                'keterangan' => $absence->checktype_label,
+            ];
+        });
+
+        // Get summary counts
+        $dateFilter = $request->date ?? now()->toDateString();
+        $summary = [
+            'date' => $dateFilter,
+            'sakit' => Attendance::whereDate('checktime', $dateFilter)
+                ->where('checktype', Attendance::TYPE_SAKIT)
+                ->count(),
+            'izin' => Attendance::whereDate('checktime', $dateFilter)
+                ->where('checktype', Attendance::TYPE_IZIN)
+                ->count(),
+        ];
+        $summary['total'] = $summary['sakit'] + $summary['izin'];
+
+        return response()->json([
+            'success' => true,
+            'summary' => $summary,
+            'data' => $data,
         ]);
     }
 }

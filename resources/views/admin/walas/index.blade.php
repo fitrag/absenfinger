@@ -41,9 +41,9 @@
 
         <!-- Search Box & Filter -->
         <div class="flex flex-wrap items-center justify-between gap-4">
-            <form action="{{ route('admin.walas.index') }}" method="GET" class="flex items-center gap-3">
+            <form id="searchForm" action="{{ route('admin.walas.index') }}" method="GET" class="flex items-center gap-3">
                 <div class="relative w-64">
-                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari guru atau kelas..."
+                    <input type="text" name="search" id="searchInput" value="{{ request('search') }}" placeholder="Cari guru atau kelas..."
                         class="w-full px-3 pr-8 py-2 text-sm bg-slate-900/50 border border-slate-800/50 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50">
                     @if(request('search'))
                         <a href="{{ route('admin.walas.index', ['tp_id' => request('tp_id')]) }}" class="absolute inset-y-0 right-0 pr-2 flex items-center cursor-pointer">
@@ -67,6 +67,23 @@
                 </button>
             </form>
         </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                let debounceTimer;
+                const searchInput = document.getElementById('searchInput');
+                const searchForm = document.getElementById('searchForm');
+                
+                if (searchInput && searchForm) {
+                    searchInput.addEventListener('input', function() {
+                        clearTimeout(debounceTimer);
+                        debounceTimer = setTimeout(function() {
+                            searchForm.submit();
+                        }, 500);
+                    });
+                }
+            });
+        </script>
 
         <!-- Table -->
         <div class="rounded-xl bg-slate-900/50 border border-slate-800/50 overflow-hidden">

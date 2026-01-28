@@ -64,12 +64,11 @@
                     @endforeach
                 </select>
 
-                <select name="status" onchange="this.form.submit()"
+                <select name="semester" onchange="this.form.submit()"
                     class="px-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500/50">
-                    <option value="">Semua Status</option>
-                    <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending</option>
-                    <option value="diproses" {{ request('status') === 'diproses' ? 'selected' : '' }}>Diproses</option>
-                    <option value="selesai" {{ request('status') === 'selesai' ? 'selected' : '' }}>Selesai</option>
+                    <option value="">Semua Semester</option>
+                    <option value="Ganjil" {{ request('semester') === 'Ganjil' ? 'selected' : '' }}>Ganjil</option>
+                    <option value="Genap" {{ request('semester') === 'Genap' ? 'selected' : '' }}>Genap</option>
                 </select>
 
                 <button type="submit"
@@ -236,7 +235,7 @@
                     </button>
                 </div>
 
-                <form action="{{ route('admin.kesiswaan.pelanggaran.store') }}" method="POST">
+                <form action="{{ route('admin.kesiswaan.pelanggaran.store') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="space-y-4">
                         <!-- Tanggal -->
@@ -254,6 +253,24 @@
                                     @foreach($kelasList as $kelas)
                                         <option value="{{ $kelas->id }}">{{ $kelas->nm_kls }}</option>
                                     @endforeach
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Tahun Pelajaran dan Semester -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-300 mb-2">Tahun Pelajaran</label>
+                                <input type="hidden" name="tp_id" value="{{ $tpAktif->id ?? '' }}">
+                                <input type="text" readonly value="{{ $tpAktif->nm_tp ?? 'Tidak ada TP aktif' }}"
+                                    class="w-full px-4 py-2.5 bg-slate-800/30 border border-slate-700/50 rounded-xl text-slate-400 text-sm cursor-not-allowed">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-300 mb-2">Semester *</label>
+                                <select name="semester" required
+                                    class="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500/50">
+                                    <option value="Ganjil" {{ ($semesterAktif ?? 'Ganjil') === 'Ganjil' ? 'selected' : '' }}>Ganjil</option>
+                                    <option value="Genap" {{ ($semesterAktif ?? 'Ganjil') === 'Genap' ? 'selected' : '' }}>Genap</option>
                                 </select>
                             </div>
                         </div>
@@ -312,9 +329,9 @@
                                 <label class="block text-sm font-medium text-slate-300 mb-2">Status *</label>
                                 <select name="status" required
                                     class="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500/50">
-                                    <option value="pending" selected>Pending</option>
+                                    <option value="selesai" selected>Selesai</option>
+                                    <option value="pending">Pending</option>
                                     <option value="diproses">Diproses</option>
-                                    <option value="selesai">Selesai</option>
                                 </select>
                             </div>
                         </div>
@@ -327,8 +344,34 @@
                                 placeholder="Keterangan tambahan"></textarea>
                         </div>
 
+                        <!-- Foto Bukti -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">Foto Bukti</label>
+                            <div class="flex items-center gap-4">
+                                <input type="file" name="foto_bukti" accept="image/*" @change="previewFoto($event)"
+                                    class="flex-1 px-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white text-sm file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:bg-blue-500 file:text-white hover:file:bg-blue-600 cursor-pointer">
+                                <img x-show="fotoPreview" :src="fotoPreview" class="w-16 h-16 rounded-lg object-cover border border-slate-600">
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1">Format: JPG, PNG. Maks: 2MB</p>
+                        </div>
+
+                        <!-- Tanda Tangan Siswa -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">Tanda Tangan Siswa</label>
+                            <div class="border border-slate-700/50 rounded-xl overflow-hidden bg-white">
+                                <canvas id="signaturePad" class="w-full" style="height: 150px; touch-action: none;"></canvas>
+                            </div>
+                            <input type="hidden" name="ttd_siswa" id="ttdSiswaInput">
+                            <div class="flex gap-2 mt-2">
+                                <button type="button" onclick="clearSignature()"
+                                    class="px-3 py-1.5 bg-slate-700 text-slate-300 text-xs rounded-lg hover:bg-slate-600 transition-colors cursor-pointer">
+                                    Hapus Tanda Tangan
+                                </button>
+                            </div>
+                        </div>
+
                         <div class="flex gap-3 pt-4 border-t border-slate-700/50">
-                            <button type="submit"
+                            <button type="submit" onclick="document.getElementById('ttdSiswaInput').value = getSignatureData();"
                                 class="flex-1 px-4 py-3 bg-gradient-to-r from-rose-500 to-red-600 text-white font-medium rounded-xl hover:from-rose-600 hover:to-red-700 transition-all cursor-pointer">
                                 Simpan
                             </button>
@@ -358,11 +401,12 @@
                     </button>
                 </div>
 
-                <form :action="editFormAction" method="POST">
+                <form :action="editFormAction" method="POST" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
+                    <input type="hidden" name="tp_id" :value="editData.tp_id">
                     <div class="space-y-4">
-                        <!-- Tanggal -->
+                        <!-- Tanggal dan Semester -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-slate-300 mb-2">Tanggal *</label>
@@ -370,14 +414,24 @@
                                     class="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500/50">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-slate-300 mb-2">Siswa *</label>
-                                <select name="student_id" required x-model="editData.student_id"
+                                <label class="block text-sm font-medium text-slate-300 mb-2">Semester *</label>
+                                <select name="semester" required x-model="editData.semester"
                                     class="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500/50">
-                                    @foreach($studentsList as $student)
-                                        <option value="{{ $student->id }}">{{ $student->nis }} - {{ $student->name }}</option>
-                                    @endforeach
+                                    <option value="Ganjil">Ganjil</option>
+                                    <option value="Genap">Genap</option>
                                 </select>
                             </div>
+                        </div>
+
+                        <!-- Siswa -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">Siswa *</label>
+                            <select name="student_id" required x-model="editData.student_id"
+                                class="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500/50">
+                                @foreach($studentsList as $student)
+                                    <option value="{{ $student->id }}">{{ $student->nis }} - {{ $student->name }}</option>
+                                @endforeach
+                            </select>
                         </div>
 
                         <!-- Jenis Pelanggaran dan Poin -->
@@ -426,6 +480,27 @@
                                 class="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500/50"></textarea>
                         </div>
 
+                        <!-- Foto Bukti (Existing + New) -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">Foto Bukti</label>
+                            <div class="flex items-center gap-4">
+                                <template x-if="editData.foto_bukti">
+                                    <img :src="'/storage/' + editData.foto_bukti" class="w-20 h-20 rounded-lg object-cover border border-slate-600">
+                                </template>
+                                <input type="file" name="foto_bukti" accept="image/*"
+                                    class="flex-1 px-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white text-sm file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:bg-blue-500 file:text-white hover:file:bg-blue-600 cursor-pointer">
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1">Kosongkan jika tidak ingin mengubah foto</p>
+                        </div>
+
+                        <!-- Tanda Tangan Siswa (Existing) -->
+                        <div x-show="editData.ttd_siswa">
+                            <label class="block text-sm font-medium text-slate-300 mb-2">Tanda Tangan Siswa (Saat Ini)</label>
+                            <div class="border border-slate-700/50 rounded-xl overflow-hidden bg-white p-2 inline-block">
+                                <img :src="editData.ttd_siswa" class="h-24 max-w-full">
+                            </div>
+                        </div>
+
                         <div class="flex gap-3 pt-4 border-t border-slate-700/50">
                             <button type="submit"
                                 class="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all cursor-pointer">
@@ -441,8 +516,77 @@
             </div>
         </div>
     </div>
-
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
     <script>
+        let signaturePad = null;
+
+        function initSignaturePad() {
+            const canvas = document.getElementById('signaturePad');
+            if (canvas) {
+                // Reset signaturePad if it exists
+                signaturePad = null;
+                
+                // Set canvas size based on container width
+                const container = canvas.parentElement;
+                const width = container.offsetWidth || 400;
+                const ratio = Math.max(window.devicePixelRatio || 1, 1);
+                
+                canvas.width = width * ratio;
+                canvas.height = 150 * ratio;
+                canvas.style.width = width + 'px';
+                canvas.style.height = '150px';
+                
+                const ctx = canvas.getContext("2d");
+                ctx.scale(ratio, ratio);
+                
+                signaturePad = new SignaturePad(canvas, {
+                    backgroundColor: 'rgb(255, 255, 255)',
+                    penColor: 'rgb(0, 0, 0)'
+                });
+                
+                // Clear canvas with white background
+                signaturePad.clear();
+                console.log('Signature pad initialized successfully');
+            }
+        }
+
+        function clearSignature() {
+            if (signaturePad) {
+                signaturePad.clear();
+            }
+        }
+
+        function getSignatureData() {
+            if (signaturePad && !signaturePad.isEmpty()) {
+                const data = signaturePad.toDataURL('image/png');
+                console.log('Signature data length:', data.length);
+                return data;
+            }
+            console.log('Signature pad is empty or not initialized');
+            return '';
+        }
+
+        // Watch for modal open with MutationObserver
+        document.addEventListener('DOMContentLoaded', function() {
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                        const canvas = document.getElementById('signaturePad');
+                        if (canvas && canvas.offsetParent !== null && !signaturePad) {
+                            setTimeout(initSignaturePad, 200);
+                        }
+                    }
+                });
+            });
+            
+            // Observe the body for changes
+            observer.observe(document.body, { 
+                attributes: true, 
+                subtree: true,
+                attributeFilter: ['style', 'class']
+            });
+        });
+
         function pelanggaranPage() {
             // Prepare students data from PHP
             const allStudentsData = [
@@ -467,12 +611,18 @@
                 allStudents: allStudentsData,
                 editData: {},
                 editFormAction: '',
+                fotoPreview: null,
 
                 openAddModal() {
                     this.selectedKelas = '';
                     this.selectedStudent = '';
                     this.students = this.allStudents;
+                    this.fotoPreview = null;
                     this.showAddModal = true;
+                    // Initialize signature pad after modal is shown
+                    this.$nextTick(() => {
+                        setTimeout(initSignaturePad, 100);
+                    });
                 },
 
                 openEditModal(item) {
@@ -486,6 +636,10 @@
                         tindakan: item.tindakan || '',
                         keterangan: item.keterangan || '',
                         status: item.status,
+                        tp_id: item.tp_id || '',
+                        semester: item.semester || 'Genap',
+                        foto_bukti: item.foto_bukti || '',
+                        ttd_siswa: item.ttd_siswa || '',
                     };
                     this.editFormAction = '{{ route("admin.kesiswaan.pelanggaran.index") }}/' + item.id;
                     this.showEditModal = true;
@@ -498,8 +652,30 @@
                         this.students = this.allStudents.filter(s => s.kelas_id == this.selectedKelas);
                     }
                     this.selectedStudent = '';
+                },
+
+                previewFoto(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        this.fotoPreview = URL.createObjectURL(file);
+                    } else {
+                        this.fotoPreview = null;
+                    }
                 }
             }
         }
+
+        // Update hidden input before form submit
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('form[action*="pelanggaran"]');
+            if (form) {
+                form.addEventListener('submit', function() {
+                    const ttdInput = document.getElementById('ttdSiswaInput');
+                    if (ttdInput) {
+                        ttdInput.value = getSignatureData();
+                    }
+                });
+            }
+        });
     </script>
 @endsection

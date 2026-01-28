@@ -10,6 +10,7 @@ use App\Models\Kelas;
 use App\Models\KelasAjar;
 use App\Models\Mapel;
 use App\Models\MUser;
+use App\Models\Setting;
 use App\Models\TahunPelajaran;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
@@ -94,7 +95,10 @@ class GuruNilaiHarianController extends Controller
             $grouped[$key]['items'][] = $nilai;
         }
 
-        return view('admin.guru.nilai.index', compact('grouped', 'kelasList', 'tpList', 'mapelList', 'activeTp', 'tpId', 'mapelId', 'semester', 'kelasId'));
+        // Get active semester from settings
+        $activeSemester = Setting::get('active_semester', 'Ganjil');
+
+        return view('admin.guru.nilai.index', compact('grouped', 'kelasList', 'tpList', 'mapelList', 'activeTp', 'tpId', 'mapelId', 'semester', 'kelasId', 'activeSemester'));
     }
 
     public function downloadPdfGroup(Request $request)
@@ -211,6 +215,7 @@ class GuruNilaiHarianController extends Controller
             'mapel_id' => 'required|exists:m_mapels,id',
             'harian_ke' => 'required|integer|min:1|max:10',
             'students' => 'nullable|array', // Array of student_id => nilai
+            'status' => 'nullable|in:draft,final',
         ]);
 
         // Check uniqueness
@@ -233,6 +238,8 @@ class GuruNilaiHarianController extends Controller
             'kelas_id' => $request->kelas_id,
             'mapel_id' => $request->mapel_id,
             'harian_ke' => $request->harian_ke,
+            'keterangan' => $request->keterangan,
+            'status' => $request->status ?? 'final',
         ]);
 
         if ($request->has('students')) {
@@ -263,6 +270,7 @@ class GuruNilaiHarianController extends Controller
             'mapel_id' => 'required|exists:m_mapels,id',
             'harian_ke' => 'required|integer|min:1|max:10',
             'students' => 'nullable|array',
+            'status' => 'nullable|in:draft,final',
         ]);
 
         // Check uniqueness excluding self
@@ -286,6 +294,8 @@ class GuruNilaiHarianController extends Controller
             'kelas_id' => $request->kelas_id,
             'mapel_id' => $request->mapel_id,
             'harian_ke' => $request->harian_ke,
+            'keterangan' => $request->keterangan,
+            'status' => $request->status ?? 'final',
         ]);
 
         // Sync details

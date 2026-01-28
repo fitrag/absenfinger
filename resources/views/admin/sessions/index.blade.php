@@ -168,9 +168,9 @@
                     </h3>
                     <span class="text-xs text-slate-400">{{ $staffUsers->count() }} pengguna</span>
                 </div>
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
                     <table class="w-full">
-                        <thead>
+                        <thead class="sticky top-0 bg-slate-800 z-10">
                             <tr class="border-b border-slate-700/50">
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase w-12">No</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Pengguna</th>
@@ -212,9 +212,9 @@
                     </h3>
                     <span class="text-xs text-slate-400">{{ $siswaUsers->total() }} pengguna</span>
                 </div>
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
                     <table class="w-full">
-                        <thead>
+                        <thead class="sticky top-0 bg-slate-800 z-10">
                             <tr class="border-b border-slate-700/50">
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase w-12">No</th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase">Pengguna</th>

@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\SiswaTerlambat;
 use App\Models\Student;
 use App\Models\Kelas;
+use App\Models\TahunPelajaran;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 
@@ -16,7 +18,24 @@ class SiswaTerlambatController extends Controller
      */
     public function index(Request $request)
     {
+        // Get active TP from Settings
+        $activeTpId = Setting::get('active_academic_year');
+        $tpAktif = $activeTpId ? TahunPelajaran::find($activeTpId) : null;
+
+        // Fallback to is_active if not set in settings
+        if (!$tpAktif) {
+            $tpAktif = TahunPelajaran::where('is_active', true)->first();
+        }
+
+        // Get active semester from Settings
+        $semesterAktif = Setting::get('active_semester') ?? 'Ganjil';
+
         $query = SiswaTerlambat::with(['student.kelas']);
+
+        // Default: filter by active TP
+        if ($tpAktif) {
+            $query->where('tp_id', $tpAktif->id);
+        }
 
         // Filter by date
         if ($request->filled('tanggal')) {
@@ -30,9 +49,9 @@ class SiswaTerlambatController extends Controller
             });
         }
 
-        // Filter by status
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
+        // Filter by semester
+        if ($request->filled('semester')) {
+            $query->where('semester', $request->semester);
         }
 
         // Search by student name or NIS
@@ -54,6 +73,7 @@ class SiswaTerlambatController extends Controller
         })->map(function ($items, $studentName) {
             $firstItem = $items->first();
             return [
+                'student_id' => $firstItem->student_id,
                 'student_name' => $studentName,
                 'student_nis' => $firstItem->student->nis,
                 'student_kelas' => $firstItem->student->kelas->nm_kls ?? '-',
@@ -67,6 +87,10 @@ class SiswaTerlambatController extends Controller
 
         // Get stats counts (using same query base for consistency with filters)
         $baseQuery = SiswaTerlambat::query();
+        // Default: filter by active TP
+        if ($tpAktif) {
+            $baseQuery->where('tp_id', $tpAktif->id);
+        }
         if ($request->filled('tanggal')) {
             $baseQuery->whereDate('tanggal', $request->tanggal);
         }
@@ -74,6 +98,9 @@ class SiswaTerlambatController extends Controller
             $baseQuery->whereHas('student', function ($q) use ($request) {
                 $q->where('kelas_id', $request->kelas_id);
             });
+        }
+        if ($request->filled('semester')) {
+            $baseQuery->where('semester', $request->semester);
         }
         if ($request->filled('search')) {
             $baseQuery->whereHas('student', function ($q) use ($request) {
@@ -93,7 +120,9 @@ class SiswaTerlambatController extends Controller
             'totalCount',
             'pendingCount',
             'diprosesCount',
-            'selesaiCount'
+            'selesaiCount',
+            'tpAktif',
+            'semesterAktif'
         ));
     }
 
@@ -112,6 +141,8 @@ class SiswaTerlambatController extends Controller
             'alasan.*' => 'nullable|string|max:255',
             'keterangan' => 'nullable|string',
             'status' => 'required|in:pending,diproses,selesai',
+            'tp_id' => 'nullable|exists:m_tp,id',
+            'semester' => 'nullable|in:Ganjil,Genap',
         ], [
             'student_ids.required' => 'Pilih minimal 1 siswa',
             'student_ids.min' => 'Pilih minimal 1 siswa',
@@ -149,6 +180,8 @@ class SiswaTerlambatController extends Controller
                 'alasan' => $alasan,
                 'keterangan' => $request->keterangan,
                 'status' => $request->status,
+                'tp_id' => $request->tp_id,
+                'semester' => $request->semester,
                 'created_by' => Session::get('user_id'),
             ]);
 
@@ -210,6 +243,22 @@ class SiswaTerlambatController extends Controller
 
         return redirect()->route('admin.kesiswaan.siswa-terlambat.index')
             ->with('success', 'Data siswa terlambat berhasil dihapus');
+    }
+
+    /**
+     * Bulk delete selected resources.
+     */
+    public function bulkDestroy(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'exists:siswa_terlambat,id',
+        ]);
+
+        $count = SiswaTerlambat::whereIn('id', $request->ids)->delete();
+
+        return redirect()->route('admin.kesiswaan.siswa-terlambat.index')
+            ->with('success', "{$count} data siswa terlambat berhasil dihapus");
     }
 
     /**
@@ -309,8 +358,16 @@ class SiswaTerlambatController extends Controller
      */
     public function printByStudent(Student $student)
     {
+        // Load student with kelas relationship
+        $student->load(['kelas']);
+
+        // Get walas (wali kelas) for this student's class
+        $walas = \App\Models\Walas::with('guru')
+            ->where('kelas_id', $student->kelas_id)
+            ->where('is_active', true)
+            ->first();
         // Get all late records for this student
-        $lateRecords = SiswaTerlambat::with(['student.kelas'])
+        $lateRecords = SiswaTerlambat::with(['student.kelas', 'creator'])
             ->where('student_id', $student->id)
             ->orderBy('tanggal', 'desc')
             ->get();
@@ -320,14 +377,94 @@ class SiswaTerlambatController extends Controller
         $totalMenit = $lateRecords->sum('keterlambatan_menit');
 
         // Get settings for school info
-        $settings = \App\Models\Setting::first();
+        $settings = \App\Models\Setting::getAllSettings();
 
         return view('admin.kesiswaan.siswa-terlambat.print', compact(
             'student',
             'lateRecords',
             'totalTerlambat',
             'totalMenit',
+            'settings',
+            'walas'
+        ));
+    }
+
+    /**
+     * Print late records by class and date period.
+     */
+    public function printByPeriod(Request $request)
+    {
+        $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'kelas_id' => 'nullable|exists:kelas,id',
+        ]);
+
+        $startDate = $request->start_date;
+        $endDate = $request->end_date;
+        $kelasId = $request->kelas_id;
+
+        // Build query
+        $query = SiswaTerlambat::with(['student.kelas', 'creator'])
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('jam_datang', 'desc');
+
+        // Filter by kelas
+        if ($kelasId) {
+            $query->whereHas('student', function ($q) use ($kelasId) {
+                $q->where('kelas_id', $kelasId);
+            });
+        }
+
+        $lateRecords = $query->get();
+
+        // Group by student
+        $groupedData = $lateRecords->groupBy(function ($item) {
+            return $item->student_id;
+        })->map(function ($items) {
+            $firstItem = $items->first();
+            return (object) [
+                'student' => $firstItem->student,
+                'total_terlambat' => $items->count(),
+                'total_menit' => $items->sum('keterlambatan_menit'),
+                'items' => $items,
+            ];
+        })->sortByDesc('total_terlambat');
+
+        // Get kelas info
+        $kelasInfo = null;
+        if ($kelasId) {
+            $kelasInfo = Kelas::find($kelasId);
+        }
+
+        // Calculate totals
+        $totalStudents = $groupedData->count();
+        $totalRecords = $lateRecords->count();
+        $totalMinutes = $lateRecords->sum('keterlambatan_menit');
+
+        // Get settings for school info
+        $settings = Setting::getAllSettings();
+
+        // Generate PDF
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.kesiswaan.siswa-terlambat.print-period', compact(
+            'groupedData',
+            'startDate',
+            'endDate',
+            'kelasInfo',
+            'totalStudents',
+            'totalRecords',
+            'totalMinutes',
             'settings'
         ));
+
+        $pdf->setPaper('a4', 'portrait');
+
+        // Generate filename
+        $kelasName = $kelasInfo ? '_' . str_replace(' ', '_', $kelasInfo->nm_kls) : '_semua_kelas';
+        $filename = 'laporan_keterlambatan_' . $startDate . '_sd_' . $endDate . $kelasName . '.pdf';
+
+        // Stream PDF for preview in browser
+        return $pdf->stream($filename);
     }
 }

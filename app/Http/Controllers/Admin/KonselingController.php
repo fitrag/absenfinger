@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\PdsKonseling;
 use App\Models\Student;
 use App\Models\Kelas;
+use App\Models\TahunPelajaran;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 
@@ -16,7 +17,15 @@ class KonselingController extends Controller
      */
     public function index(Request $request)
     {
+        // Get active TP
+        $tpAktif = TahunPelajaran::where('is_active', true)->first();
+
         $query = PdsKonseling::with(['student.kelas']);
+
+        // Default: filter by active TP
+        if ($tpAktif) {
+            $query->where('tp_id', $tpAktif->id);
+        }
 
         // Filter by date
         if ($request->filled('tanggal')) {
@@ -30,9 +39,9 @@ class KonselingController extends Controller
             });
         }
 
-        // Filter by status
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
+        // Filter by semester
+        if ($request->filled('semester')) {
+            $query->where('semester', $request->semester);
         }
 
         // Search by student name or NIS
@@ -52,21 +61,31 @@ class KonselingController extends Controller
             ->withQueryString();
 
         $kelasList = Kelas::orderBy('nm_kls')->get();
-        // Get all students for the modal dropdown (grouped by class for better UX potentially, or just list all)
-        // Here we'll just get all active students to populate the select2/dropdown
-        $students = Student::with('kelas')
+        // Get students who have pelanggaran records for the counseling dropdown
+        $students = Student::with(['kelas', 'pelanggarans'])
             ->where('is_active', true)
+            ->whereHas('pelanggarans') // Only students with violation records
             ->orderBy('name')
             ->get()
             ->map(function ($student) {
+                // Get list of violations as array
+                $pelanggaranList = $student->pelanggarans->map(function ($p) {
+                    return [
+                        'jenis' => $p->jenis_pelanggaran,
+                        'poin' => $p->poin,
+                        'tanggal' => $p->tanggal->format('d/m/Y'),
+                    ];
+                })->toArray();
                 return [
                     'id' => $student->id,
                     'text' => $student->nis . ' - ' . $student->name . ' (' . ($student->kelas->nm_kls ?? '-') . ')',
-                    'kelas_id' => $student->kelas_id
+                    'kelas_id' => $student->kelas_id,
+                    'pelanggaranList' => $pelanggaranList,
+                    'total_poin' => $student->pelanggarans->sum('poin'),
                 ];
             });
 
-        return view('admin.kesiswaan.konseling.index', compact('konseling', 'kelasList', 'students'));
+        return view('admin.kesiswaan.konseling.index', compact('konseling', 'kelasList', 'students', 'tpAktif'));
     }
 
     /**
@@ -81,12 +100,24 @@ class KonselingController extends Controller
             'penanganan' => 'nullable|string',
             'hasil' => 'nullable|string',
             'keterangan' => 'nullable|string',
+            'foto_bukti' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'ttd_siswa' => 'nullable|string',
             'status' => 'required|in:pending,diproses,selesai',
+            'tp_id' => 'nullable|exists:m_tp,id',
+            'semester' => 'nullable|in:Ganjil,Genap',
         ], [
             'student_id.required' => 'Siswa wajib dipilih',
             'tanggal.required' => 'Tanggal wajib diisi',
             'permasalahan.required' => 'Permasalahan wajib diisi',
+            'foto_bukti.image' => 'File harus berupa gambar',
+            'foto_bukti.max' => 'Ukuran file maksimal 2MB',
         ]);
+
+        // Handle photo upload
+        $fotoPath = null;
+        if ($request->hasFile('foto_bukti')) {
+            $fotoPath = $request->file('foto_bukti')->store('konseling/foto', 'public');
+        }
 
         PdsKonseling::create([
             'student_id' => $request->student_id,
@@ -95,7 +126,11 @@ class KonselingController extends Controller
             'penanganan' => $request->penanganan,
             'hasil' => $request->hasil,
             'keterangan' => $request->keterangan,
+            'foto_bukti' => $fotoPath,
+            'ttd_siswa' => $request->ttd_siswa,
             'status' => $request->status,
+            'tp_id' => $request->tp_id,
+            'semester' => $request->semester,
             'created_by' => Session::get('user_id'),
         ]);
 

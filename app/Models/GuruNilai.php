@@ -13,6 +13,8 @@ class GuruNilai extends Model
         'tp_id',
         'semester',
         'harian_ke',
+        'keterangan',
+        'status',
     ];
 
     public function guru()

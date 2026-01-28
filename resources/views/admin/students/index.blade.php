@@ -4,14 +4,15 @@
 @section('page-title', 'Data Siswa')
 
 @section('content')
-    <div class="space-y-6" x-data="{ showImportModal: false, showPrintModal: false, showExportModal: false }">
+    <div class="space-y-6" x-data="{ showImportModal: false, showImportDetailModal: false, showPrintModal: false, showExportModal: false }">
         <!-- Header -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
                 <h2 class="text-xl font-bold text-white">Data Siswa</h2>
                 <p class="text-sm text-slate-400 mt-1">Kelola data siswa yang terdaftar</p>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center justify-end gap-2">
+                <!-- Row 1: Main actions -->
                 <a href="{{ route('admin.students.naikKelas') }}"
                     class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-amber-500/10 text-amber-400 font-medium rounded-xl hover:bg-amber-500/20 transition-all border border-amber-500/20">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -36,6 +37,7 @@
                     </svg>
                     Cetak Absensi
                 </button>
+                <!-- Row 2: Import and Add -->
                 <button @click="showImportModal = true"
                     class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-400 font-medium rounded-xl hover:bg-emerald-500/20 transition-all border border-emerald-500/20">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -43,6 +45,14 @@
                             d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                     </svg>
                     Import
+                </button>
+                <button @click="showImportDetailModal = true"
+                    class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-cyan-500/10 text-cyan-400 font-medium rounded-xl hover:bg-cyan-500/20 transition-all border border-cyan-500/20">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Import Detail
                 </button>
                 <a href="{{ route('admin.students.create') }}"
                     class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium rounded-xl hover:from-blue-600 hover:to-purple-600 transition-all shadow-lg shadow-blue-500/20">
@@ -86,7 +96,15 @@
                 </div>
             </div>
         </div>
-
+        
+        <!-- Students Per Kelas -->
+        <div class="flex flex-wrap gap-2 text-xs">
+            @foreach($kelasList as $kelas)
+                <span class="px-2 py-1 rounded-lg {{ $kelas->students_count > 0 ? 'bg-slate-800/50 border-slate-700/50 text-slate-400' : 'bg-red-900/20 border-red-800/30 text-red-400/70' }} border">
+                    {{ $kelas->nm_kls }}: <span class="{{ $kelas->students_count > 0 ? 'text-white' : 'text-red-300' }} font-medium">{{ $kelas->students_count }}</span>
+                </span>
+            @endforeach
+        </div>
         <!-- Filters -->
         <div class="rounded-xl bg-slate-900/50 border border-slate-800/50 p-4">
             <form id="filterForm" action="{{ route('admin.students.index') }}" method="GET"
@@ -332,7 +350,7 @@
                                     <ul class="list-disc list-inside text-xs text-blue-300/80 space-y-1">
                                         <li>Download template Excel terlebih dahulu</li>
                                         <li>Isi data sesuai format template</li>
-                                        <li>Kolom wajib: finger_id, nis, nisn, name</li>
+                                        <li>Kolom wajib: <strong>nis, nisn, name</strong></li>
                                         <li>NIS akan menjadi username, NISN menjadi password</li>
                                     </ul>
                                 </div>
@@ -350,6 +368,19 @@
                             </a>
                         </div>
 
+                        <!-- Mode Import -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">Mode Import <span
+                                    class="text-rose-400">*</span></label>
+                            <select name="import_mode" required
+                                class="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500/50">
+                                <option value="skip">Skip jika NIS sudah ada</option>
+                                <option value="update">Update jika NIS sudah ada</option>
+                            </select>
+                            <p class="text-xs text-slate-400 mt-1">Pilih cara penanganan jika data siswa sudah ada di
+                                database</p>
+                        </div>
+
                         <div>
                             <label class="block text-sm font-medium text-slate-300 mb-2">File Excel <span
                                     class="text-rose-400">*</span></label>
@@ -364,6 +395,77 @@
                                 Import Data
                             </button>
                             <button type="button" @click="showImportModal = false"
+                                class="cursor-pointer px-6 py-2.5 bg-slate-700 text-white font-medium rounded-xl hover:bg-slate-600 transition-colors">
+                                Batal
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Import Detail Modal -->
+        <div x-show="showImportDetailModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" x-transition>
+            <div class="flex items-center justify-center min-h-screen px-4">
+                <div class="fixed inset-0 bg-black/60 backdrop-blur-sm" @click="showImportDetailModal = false"></div>
+                <div
+                    class="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl shadow-2xl max-w-xl w-full border border-slate-700/50">
+                    <div class="flex items-center justify-between p-6 border-b border-slate-800/50">
+                        <h3 class="text-lg font-bold text-white">Import Detail Siswa</h3>
+                        <button @click="showImportDetailModal = false"
+                            class="cursor-pointer p-1 text-slate-400 hover:text-white transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <form action="{{ route('admin.students.importDetail') }}" method="POST" enctype="multipart/form-data"
+                        class="p-6 space-y-4">
+                        @csrf
+                        <div class="rounded-xl bg-cyan-500/10 border border-cyan-500/20 p-4">
+                            <div class="flex gap-3">
+                                <svg class="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <div class="text-sm text-cyan-300">
+                                    <p class="font-medium mb-1">Petunjuk Import Detail:</p>
+                                    <ul class="list-disc list-inside text-xs text-cyan-300/80 space-y-1">
+                                        <li>Download template terlebih dahulu untuk melihat format</li>
+                                        <li>Kolom <strong>student_id, nis, name</strong> hanya referensi</li>
+                                        <li>Isi data detail lainnya (NIK, Alamat, dll)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <a href="{{ route('admin.students.templateDetail') }}"
+                                class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-slate-700 text-white font-medium rounded-xl hover:bg-slate-600 transition-colors text-sm">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                Download Template Detail
+                            </a>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">File Excel <span
+                                    class="text-rose-400">*</span></label>
+                            <input type="file" name="file" accept=".xlsx,.xls,.csv" required
+                                class="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-cyan-500/20 file:text-cyan-400 hover:file:bg-cyan-500/30">
+                        </div>
+
+                        <div class="flex items-center gap-3 pt-4 border-t border-slate-800/50">
+                            <button type="submit"
+                                class="cursor-pointer flex-1 px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-medium rounded-xl hover:from-cyan-600 hover:to-blue-600 transition-all shadow-lg shadow-cyan-500/20">
+                                Import Detail
+                            </button>
+                            <button type="button" @click="showImportDetailModal = false"
                                 class="cursor-pointer px-6 py-2.5 bg-slate-700 text-white font-medium rounded-xl hover:bg-slate-600 transition-colors">
                                 Batal
                             </button>

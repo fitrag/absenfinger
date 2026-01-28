@@ -11,6 +11,7 @@ use App\Models\Kelas;
 use App\Models\TahunPelajaran;
 use App\Models\Role;
 use App\Models\MUser;
+use App\Models\Attendance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 
@@ -236,6 +237,32 @@ class PklController extends Controller
     }
 
     /**
+     * Update Supervisors (Pimpinan & Pembimbing Industri) for all students in a DUDI group
+     */
+    public function updateSupervisors(Request $request)
+    {
+        $request->validate([
+            'dudi_id' => 'required|exists:dudis,id',
+            'pimpinan' => 'nullable|string|max:255',
+            'pembimbing_industri' => 'nullable|string|max:255',
+            'tp_id' => 'required|exists:m_tp,id',
+        ]);
+
+        $count = Pkl::where('dudi_id', $request->dudi_id)
+            ->where('tp_id', $request->tp_id)
+            ->update([
+                'pimpinan' => $request->pimpinan,
+                'pembimbing_industri' => $request->pembimbing_industri,
+            ]);
+
+        if ($count > 0) {
+            return redirect()->route('admin.pkl.index')->with('success', "Data pembimbing berhasil diperbarui untuk {$count} siswa");
+        }
+
+        return redirect()->route('admin.pkl.index')->with('error', 'Tidak ada data PKL yang ditemukan untuk diperbarui');
+    }
+
+    /**
      * Helper to assign PKL role to user if not exists
      */
     private function assignPklRole($userId)
@@ -258,6 +285,37 @@ class PklController extends Controller
                 $user->roles()->attach($pklRole->id);
             }
         }
+    }
+
+    /**
+     * Print Nametag for PKL Students
+     */
+    public function printNametag(Request $request)
+    {
+        $dudiId = $request->get('dudi_id');
+        $tpId = $request->get('tp_id');
+
+        $query = Pkl::with(['student.kelas', 'student.user', 'dudi', 'pembimbingSekolah'])
+            ->where('tp_id', $tpId);
+
+        if ($dudiId && $dudiId !== 'all') {
+            $query->where('dudi_id', $dudiId);
+        }
+
+        $pkls = $query->orderBy('dudi_id')
+            ->orderBy('student_id')
+            ->get();
+
+        if ($pkls->isEmpty()) {
+            return redirect()->back()->with('error', 'Tidak ada data siswa PKL ditemukan untuk kriteria ini.');
+        }
+
+        $schoolName = \App\Models\Setting::where('key', 'school_name')->value('value') ?? 'SMK Taruna Bhakti Depok';
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.pkl.print-nametag', compact('pkls', 'schoolName'));
+        $pdf->setPaper('a4', 'portrait');
+
+        return $pdf->stream('Nametag_PKL_' . now()->format('Y-m-d_H-i') . '.pdf');
     }
 
     /**
@@ -656,5 +714,289 @@ class PklController extends Controller
         $sertifikat->save();
 
         return redirect()->back()->with('success', 'Konfigurasi sertifikat berhasil disimpan');
+    }
+
+    /**
+     * Display PKL attendance for all students (Admin View)
+     */
+    public function absensi(Request $request)
+    {
+        // Filter parameters
+        $dudiId = $request->get('dudi_id');
+        $date = $request->get('date', now()->format('Y-m-d'));
+        $search = $request->get('search');
+        $kelasId = $request->get('kelas_id');
+
+        // Get active TP or selected TP
+        $activeTp = TahunPelajaran::where('is_active', true)->first();
+        $sessionTpId = Session::get('pkl_tp_id', $activeTp?->id);
+        $tpId = $request->get('tp_id', $sessionTpId);
+
+        // Get DUDI list
+        $dudiList = Dudi::orderBy('nama')->get();
+
+        // Get Kelas list
+        $kelasList = Kelas::where('nm_kls', 'like', '%XI%')
+            ->orWhere('nm_kls', 'like', '%XII%')
+            ->orderBy('nm_kls')
+            ->get();
+
+        // Get TP List
+        $tpList = TahunPelajaran::orderBy('nm_tp', 'desc')->get();
+        $selectedTp = $tpId ? TahunPelajaran::find($tpId) : $activeTp;
+
+        // Build Query
+        $pklQuery = Pkl::select('pkls.*')
+            ->join('dudis', 'pkls.dudi_id', '=', 'dudis.id')
+            ->with(['student.kelas', 'dudi'])
+            ->orderBy('dudis.nama', 'asc')
+            ->orderBy('pkls.student_id', 'asc');
+
+        if ($tpId) {
+            $pklQuery->where('pkls.tp_id', $tpId);
+        }
+
+        if ($dudiId) {
+            $pklQuery->where('pkls.dudi_id', $dudiId);
+        }
+
+        if ($kelasId) {
+            $pklQuery->whereHas('student', function ($q) use ($kelasId) {
+                $q->where('kelas_id', $kelasId);
+            });
+        }
+
+        if ($search) {
+            $pklQuery->where(function ($q) use ($search) {
+                $q->whereHas('student', function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('nis', 'like', "%{$search}%");
+                });
+            });
+        }
+
+        $pkls = $pklQuery->get();
+
+        // Get NIS list of PKL students
+        $nisList = $pkls->pluck('student.nis')->toArray();
+
+        // Get attendance data for selected date (PKL attendance only)
+        $attendances = Attendance::whereIn('nis', $nisList)
+            ->where('is_pkl', true)
+            ->whereDate('checktime', $date)
+            ->get()
+            ->groupBy('nis');
+
+        // Build attendance data for each student
+        $attendanceData = [];
+        foreach ($pkls as $pkl) {
+            $nis = $pkl->student->nis;
+            $studentAttendances = $attendances->get($nis, collect());
+
+            $checkIn = $studentAttendances->where('checktype', 0)->first();
+            $checkOut = $studentAttendances->where('checktype', 1)->first();
+            $sakit = $studentAttendances->where('checktype', 2)->first();
+            $izin = $studentAttendances->where('checktype', 3)->first();
+            $alpha = $studentAttendances->where('checktype', 4)->first();
+
+            $attendanceData[$pkl->id] = [
+                'pkl' => $pkl,
+                'check_in' => $checkIn,
+                'check_out' => $checkOut,
+                'sakit' => $sakit,
+                'izin' => $izin,
+                'alpha' => $alpha,
+                'status' => $this->getAttendanceStatus($checkIn, $checkOut, $sakit, $izin, $alpha),
+            ];
+        }
+
+        // Group by DUDI
+        $groupedData = collect($attendanceData)->groupBy(function ($item) {
+            return $item['pkl']->dudi->nama;
+        });
+
+        return view('admin.pkl.absensi', compact(
+            'groupedData',
+            'dudiList',
+            'kelasList',
+            'tpList',
+            'selectedTp',
+            'tpId',
+            'dudiId',
+            'kelasId',
+            'date',
+            'search'
+        ));
+    }
+
+    /**
+     * Print PKL attendance report (Admin View)
+     */
+    public function printAbsensi(Request $request)
+    {
+        $request->validate([
+            'dudi_id' => 'required|exists:dudis,id',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+        ]);
+
+        $dudiId = $request->get('dudi_id');
+        $startDate = $request->get('start_date');
+        $endDate = $request->get('end_date');
+        $tpId = $request->get('tp_id');
+
+        // Get DUDI info
+        $dudi = Dudi::findOrFail($dudiId);
+
+        // Get PKL students for this DUDI
+        $pklQuery = Pkl::with(['student.kelas'])
+            ->where('dudi_id', $dudiId);
+
+        if ($tpId) {
+            $pklQuery->where('tp_id', $tpId);
+        }
+
+        $pkls = $pklQuery->orderBy('student_id')->get();
+
+        if ($pkls->isEmpty()) {
+            return redirect()->route('admin.pkl.absensi')->with('error', 'Tidak ada siswa yang ditemukan di DUDI ini.');
+        }
+
+        // Get NIS list
+        $nisList = $pkls->pluck('student.nis')->toArray();
+
+        // Generate date range
+        $dates = [];
+        $currentDate = \Carbon\Carbon::parse($startDate);
+        $endDateCarbon = \Carbon\Carbon::parse($endDate);
+
+        while ($currentDate->lte($endDateCarbon)) {
+            $dates[] = $currentDate->format('Y-m-d');
+            $currentDate->addDay();
+        }
+
+        // Get all attendance for the date range
+        $attendances = Attendance::whereIn('nis', $nisList)
+            ->where('is_pkl', true)
+            ->whereDate('checktime', '>=', $startDate)
+            ->whereDate('checktime', '<=', $endDate)
+            ->get()
+            ->groupBy([
+                'nis',
+                function ($item) {
+                    return \Carbon\Carbon::parse($item->checktime)->format('Y-m-d');
+                }
+            ]);
+
+        // Build attendance matrix
+        $attendanceMatrix = [];
+        foreach ($pkls as $pkl) {
+            $nis = $pkl->student->nis;
+            $studentData = [
+                'pkl' => $pkl,
+                'dates' => [],
+            ];
+
+            foreach ($dates as $date) {
+                $dayAttendances = $attendances->get($nis, collect())->get($date, collect());
+
+                $checkIn = $dayAttendances->where('checktype', 0)->first();
+                $checkOut = $dayAttendances->where('checktype', 1)->first();
+                $sakit = $dayAttendances->where('checktype', 2)->first();
+                $izin = $dayAttendances->where('checktype', 3)->first();
+                $alpha = $dayAttendances->where('checktype', 4)->first();
+
+                $studentData['dates'][$date] = [
+                    'check_in' => $checkIn,
+                    'check_out' => $checkOut,
+                    'status' => $this->getAttendanceStatus($checkIn, $checkOut, $sakit, $izin, $alpha),
+                ];
+            }
+
+            $attendanceMatrix[] = $studentData;
+        }
+
+        // Get TP info
+        $selectedTp = $tpId ? TahunPelajaran::find($tpId) : null;
+
+        return view('admin.pkl.print-absensi', compact(
+            'dudi',
+            'attendanceMatrix',
+            'dates',
+            'startDate',
+            'endDate',
+            'selectedTp'
+        ));
+    }
+
+    /**
+     * Helper to determine attendance status
+     */
+    private function getAttendanceStatus($checkIn, $checkOut, $sakit = null, $izin = null, $alpha = null): string
+    {
+        // First check for Sakit/Izin/Alpha
+        if ($sakit) {
+            return 'Sakit';
+        } elseif ($izin) {
+            return 'Izin';
+        } elseif ($alpha) {
+            return 'Alpha';
+        } elseif ($checkIn && $checkOut) {
+            return 'Lengkap';
+        } elseif ($checkIn) {
+            return 'Belum Pulang';
+        } else {
+            return 'Belum Absen';
+        }
+    }
+
+    /**
+     * Update PKL attendance status (Sakit, Izin, Alpha)
+     */
+    public function updateAbsensiStatus(Request $request)
+    {
+        $request->validate([
+            'pkl_id' => 'required|exists:pkls,id',
+            'status' => 'required|in:2,3,4', // 2=Sakit, 3=Izin, 4=Alpha
+            'date' => 'required|date',
+        ]);
+
+        $pkl = Pkl::findOrFail($request->pkl_id);
+        $nis = $pkl->student->nis;
+        $date = $request->date;
+        $checktype = (int) $request->status;
+
+        // Check if attendance record already exists for this student on this date
+        $existingAttendance = Attendance::where('nis', $nis)
+            ->where('is_pkl', true)
+            ->whereDate('checktime', $date)
+            ->first();
+
+        if ($existingAttendance) {
+            // Update existing record
+            // If existing is CheckIn/CheckOut, we are overriding it with S/I/A
+            $existingAttendance->update([
+                'checktype' => $checktype,
+                'checktime' => $date . ' 00:00:00',
+            ]);
+        } else {
+            // Create new attendance record
+            Attendance::create([
+                'nis' => $nis,
+                'checktime' => $date . ' 00:00:00',
+                'checktype' => $checktype,
+                'dudi_id' => $pkl->dudi_id,
+                'is_pkl' => true,
+            ]);
+        }
+
+        $statusLabel = match ($checktype) {
+            2 => 'Sakit',
+            3 => 'Izin',
+            4 => 'Alpha',
+            default => 'Unknown',
+        };
+
+        return redirect()->back()->with('success', "Status absensi {$pkl->student->name} berhasil diubah menjadi {$statusLabel}");
     }
 }

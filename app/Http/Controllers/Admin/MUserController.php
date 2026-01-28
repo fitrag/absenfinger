@@ -38,7 +38,7 @@ class MUserController extends Controller
             $users = new \Illuminate\Pagination\LengthAwarePaginator(
                 $users,
                 $users->count(),
-                $users->count(),
+                max(1, $users->count()),
                 1
             );
         } else {
@@ -136,7 +136,7 @@ class MUserController extends Controller
             $users = new \Illuminate\Pagination\LengthAwarePaginator(
                 $users,
                 $users->count(),
-                $users->count(),
+                max(1, $users->count()),
                 1
             );
         } else {
@@ -285,7 +285,7 @@ class MUserController extends Controller
             $users = new \Illuminate\Pagination\LengthAwarePaginator(
                 $users,
                 $users->count(),
-                $users->count(),
+                max(1, $users->count()),
                 1
             );
         } else {
@@ -423,6 +423,15 @@ class MUserController extends Controller
 
         // Sync roles
         $user->roles()->sync($request->roles ?? []);
+
+        // Redirect based on user level
+        if ($user->level === 'guru') {
+            return redirect()->route('admin.users.guru')
+                ->with('success', 'User guru berhasil diperbarui!');
+        } elseif ($user->level === 'siswa') {
+            return redirect()->route('admin.users.siswa')
+                ->with('success', 'User siswa berhasil diperbarui!');
+        }
 
         return redirect()->route('admin.users.index')
             ->with('success', 'User berhasil diperbarui!');

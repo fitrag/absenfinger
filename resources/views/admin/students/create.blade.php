@@ -17,17 +17,7 @@
                 <!-- Data Identitas -->
                 <div class="border-b border-slate-800/50 pb-4 mb-4">
                     <h4 class="text-sm font-semibold text-slate-300 mb-4">Data Identitas</h4>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <!-- Finger ID -->
-                        <div>
-                            <label for="finger_id" class="block text-sm font-medium text-slate-300 mb-1.5">Finger ID <span
-                                    class="text-rose-400">*</span></label>
-                            <input type="text" name="finger_id" id="finger_id" value="{{ old('finger_id') }}" required
-                                class="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 placeholder-slate-500"
-                                placeholder="Contoh: 001">
-                            @error('finger_id')<p class="text-rose-400 text-xs mt-1">{{ $message }}</p>@enderror
-                        </div>
-
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- NIS -->
                         <div>
                             <label for="nis" class="block text-sm font-medium text-slate-300 mb-1.5">NIS <span

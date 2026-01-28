@@ -3,13 +3,16 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Attendance;
 use App\Models\Guru;
 use App\Models\GuruJurnal;
 use App\Models\Kelas;
 use App\Models\KelasAjar;
 use App\Models\Mapel;
 use App\Models\MUser;
+use App\Models\Student;
 use App\Models\TahunPelajaran;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\Rule;
@@ -68,13 +71,29 @@ class GuruJurnalController extends Controller
             ->where('is_active', true)
             ->pluck('kelas_id')
             ->unique();
-        $kelasList = Kelas::whereIn('id', $guruKelasIds)->orderBy('nm_kls')->get();
+
+        // Also include classes from existing journals (in case they were deactivated)
+        $jurnalKelasIds = GuruJurnal::where('guru_id', $guru->id)
+            ->whereNotNull('kelas_id')
+            ->pluck('kelas_id')
+            ->unique();
+
+        $allKelasIds = $guruKelasIds->merge($jurnalKelasIds)->unique();
+        $kelasList = Kelas::whereIn('id', $allKelasIds)->orderBy('nm_kls')->get();
 
         // Get mapels based on guru's ajar records
         $mapelIds = \App\Models\GuruAjar::where('guru_id', $guru->id)
             ->where('is_active', true)
             ->pluck('mapel_id');
-        $mapelList = Mapel::whereIn('id', $mapelIds)->orderBy('nm_mapel')->get();
+
+        // Also include mapels from existing journals (in case they were deactivated)
+        $jurnalMapelIds = GuruJurnal::where('guru_id', $guru->id)
+            ->whereNotNull('mapel_id')
+            ->pluck('mapel_id')
+            ->unique();
+
+        $allMapelIds = $mapelIds->merge($jurnalMapelIds)->unique();
+        $mapelList = Mapel::whereIn('id', $allMapelIds)->orderBy('nm_mapel')->get();
 
         // Query jurnals for this guru with filters
         $query = GuruJurnal::with(['kelas', 'mapel', 'tp'])
@@ -192,7 +211,97 @@ class GuruJurnalController extends Controller
             'catatan' => $request->catatan,
         ]);
 
+        // Update attendance based on student_attendance data
+        if ($request->has('student_attendance') && $request->student_attendance) {
+            $this->updateStudentAttendance($request->student_attendance, $request->tanggal);
+        }
+
         return redirect()->back()->with('success', 'Jurnal berhasil disimpan.');
+    }
+
+    /**
+     * Update student attendance records based on journal attendance data
+     */
+    private function updateStudentAttendance($studentAttendanceJson, $tanggal)
+    {
+        $attendanceData = json_decode($studentAttendanceJson, true);
+
+        if (!is_array($attendanceData)) {
+            return;
+        }
+
+        $now = Carbon::now();
+        $tanggalDate = Carbon::parse($tanggal);
+
+        foreach ($attendanceData as $studentId => $status) {
+            $student = Student::find($studentId);
+            if (!$student || !$student->nis) {
+                continue;
+            }
+
+            $nis = $student->nis;
+
+            // Check existing attendance record for this date
+            $existingMasuk = Attendance::where('nis', $nis)
+                ->whereDate('checktime', $tanggalDate)
+                ->where('checktype', Attendance::TYPE_MASUK)
+                ->first();
+
+            switch ($status) {
+                case 'H': // Hadir - Create check-in record if not exists
+                    if (!$existingMasuk) {
+                        Attendance::create([
+                            'nis' => $nis,
+                            'checktime' => $now,
+                            'checktype' => Attendance::TYPE_MASUK,
+                            'is_pkl' => false,
+                        ]);
+                    }
+                    break;
+
+                case 'S': // Sakit
+                    $this->upsertNonHadirAttendance($nis, $tanggalDate, Attendance::TYPE_SAKIT);
+                    break;
+
+                case 'I': // Izin
+                    $this->upsertNonHadirAttendance($nis, $tanggalDate, Attendance::TYPE_IZIN);
+                    break;
+
+                case 'A': // Alpha
+                case 'AL': // Alpha Leave
+                    $this->upsertNonHadirAttendance($nis, $tanggalDate, Attendance::TYPE_ALPHA);
+                    break;
+            }
+        }
+    }
+
+    /**
+     * Insert or update non-hadir (S/I/A) attendance record
+     */
+    private function upsertNonHadirAttendance($nis, $tanggalDate, $checktype)
+    {
+        // Find existing S/I/A record for this date
+        $existing = Attendance::where('nis', $nis)
+            ->whereDate('checktime', $tanggalDate)
+            ->whereIn('checktype', [
+                Attendance::TYPE_SAKIT,
+                Attendance::TYPE_IZIN,
+                Attendance::TYPE_ALPHA
+            ])
+            ->first();
+
+        if ($existing) {
+            // Update existing record
+            $existing->update(['checktype' => $checktype]);
+        } else {
+            // Create new record
+            Attendance::create([
+                'nis' => $nis,
+                'checktime' => $tanggalDate->copy()->setTime(now()->hour, now()->minute, now()->second),
+                'checktype' => $checktype,
+                'is_pkl' => false,
+            ]);
+        }
     }
 
     public function update(Request $request, $id)
@@ -251,6 +360,11 @@ class GuruJurnalController extends Controller
             'kegiatan' => $request->kegiatan,
             'catatan' => $request->catatan,
         ]);
+
+        // Update attendance based on student_attendance data
+        if ($request->has('student_attendance') && $request->student_attendance) {
+            $this->updateStudentAttendance($request->student_attendance, $request->tanggal);
+        }
 
         return redirect()->back()->with('success', 'Jurnal berhasil diperbarui.');
     }
@@ -344,10 +458,54 @@ class GuruJurnalController extends Controller
 
     public function getStudentsByKelas($kelas_id)
     {
+        $tanggal = request('tanggal', now()->toDateString());
+
         $students = \App\Models\Student::where('kelas_id', $kelas_id)
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name', 'nis']);
+
+        // Attach attendance status
+        $students->transform(function ($student) use ($tanggal) {
+            // Get all attendance records for this student on this date
+            $attendances = \App\Models\Attendance::where('nis', $student->nis)
+                ->whereDate('checktime', $tanggal)
+                ->get();
+
+            $status = 'A'; // Default to Alpha if no attendance record
+
+            if ($attendances->count() > 0) {
+                // Check for S/I/A records first (prioritize non-hadir status)
+                $nonHadirRecord = $attendances->whereIn('checktype', [
+                    \App\Models\Attendance::TYPE_SAKIT,
+                    \App\Models\Attendance::TYPE_IZIN,
+                    \App\Models\Attendance::TYPE_ALPHA,
+                ])->first();
+
+                if ($nonHadirRecord) {
+                    switch ($nonHadirRecord->checktype) {
+                        case \App\Models\Attendance::TYPE_SAKIT:
+                            $status = 'S';
+                            break;
+                        case \App\Models\Attendance::TYPE_IZIN:
+                            $status = 'I';
+                            break;
+                        case \App\Models\Attendance::TYPE_ALPHA:
+                            $status = 'A';
+                            break;
+                    }
+                } else {
+                    // Check if there's a check-in record (TYPE_MASUK = 0)
+                    $hasCheckIn = $attendances->where('checktype', \App\Models\Attendance::TYPE_MASUK)->count() > 0;
+                    if ($hasCheckIn) {
+                        $status = 'H';
+                    }
+                }
+            }
+
+            $student->initial_status = $status;
+            return $student;
+        });
 
         return response()->json($students);
     }

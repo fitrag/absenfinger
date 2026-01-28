@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Student extends Model
@@ -12,7 +13,6 @@ class Student extends Model
     use HasFactory;
 
     protected $fillable = [
-        'finger_id',
         'nis',
         'nisn',
         'name',
@@ -64,6 +64,22 @@ class Student extends Model
     public function attendances(): HasMany
     {
         return $this->hasMany(Attendance::class, 'nis', 'nis');
+    }
+
+    /**
+     * Get pelanggaran (violation) records for the student.
+     */
+    public function pelanggarans(): HasMany
+    {
+        return $this->hasMany(PdsPelanggaran::class);
+    }
+
+    /**
+     * Get the detail record for the student.
+     */
+    public function detail(): HasOne
+    {
+        return $this->hasOne(StudentDetail::class);
     }
 
     /**

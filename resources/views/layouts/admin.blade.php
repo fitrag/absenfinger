@@ -52,6 +52,11 @@
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
             background: rgba(100, 116, 139, 0.7);
         }
+
+        /* Alpine.js x-cloak - Hide elements until Alpine.js is ready */
+        [x-cloak] {
+            display: none !important;
+        }
     </style>
 
     @stack('styles')

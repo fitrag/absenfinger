@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Models\TahunPelajaran;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -15,8 +16,9 @@ class SettingController extends Controller
     public function index()
     {
         $settings = Setting::getAllSettings();
+        $tahunPelajaranList = TahunPelajaran::orderBy('nm_tp', 'desc')->get();
 
-        return view('admin.settings.index', compact('settings'));
+        return view('admin.settings.index', compact('settings', 'tahunPelajaranList'));
     }
 
     /**
@@ -37,6 +39,8 @@ class SettingController extends Controller
             'system_name' => 'nullable|string|max:100',
             'letterhead' => 'nullable|string|max:255',
             'letterhead_sub' => 'nullable|string|max:255',
+            'active_academic_year' => 'nullable|exists:m_tp,id',
+            'active_semester' => 'nullable|in:Ganjil,Genap',
         ]);
 
         // Update text settings
@@ -51,6 +55,8 @@ class SettingController extends Controller
             'system_name',
             'letterhead',
             'letterhead_sub',
+            'active_academic_year',
+            'active_semester',
         ];
 
         foreach ($textSettings as $key) {

@@ -115,7 +115,7 @@
         }
 
         .signature .date {
-            margin-bottom: 60px;
+            margin-bottom: 5px;
         }
 
         .signature .title {
@@ -241,6 +241,7 @@
         <div class="signature">
             <div class="date">Seputih Agung, {{ \Carbon\Carbon::now()->locale('id')->translatedFormat('d F Y') }}</div>
             <p class="title">Guru Mata Pelajaran</p>
+            <div style="height: 60px;"></div>
             <p class="name">{{ $guru->nama ?? '-' }}</p>
             <p class="nip">NIP. {{ $guru->nip ?? '-' }}</p>
         </div>

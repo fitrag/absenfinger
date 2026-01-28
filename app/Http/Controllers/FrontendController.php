@@ -9,6 +9,7 @@ use App\Models\Guru;
 use App\Models\Jurusan;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class FrontendController extends Controller
 {
@@ -82,7 +83,11 @@ class FrontendController extends Controller
 
         // Process attendance for each student
         $attendanceList = [];
+        $totalSiswa = $students->count();
         $stats = [
+            'total_siswa' => $totalSiswa,
+            'masuk' => 0,
+            'pulang' => 0,
             'hadir' => 0,
             'terlambat' => 0,
             'sakit' => 0,
@@ -90,6 +95,7 @@ class FrontendController extends Controller
             'alpha' => 0,
             'bolos' => 0,
             'belum' => 0,
+            'persentase' => 0,
         ];
 
         foreach ($students as $student) {
@@ -120,9 +126,15 @@ class FrontendController extends Controller
                         $stats['alpha']++;
                     }
                 } elseif ($checkInRecord) {
+                    // Count as checked in (masuk)
+                    $stats['masuk']++;
+
                     $checkIn = Carbon::parse($checkInRecord->checktime)->format('H:i');
 
                     if ($checkOutRecord) {
+                        // Count as checked out (pulang)
+                        $stats['pulang']++;
+
                         $checkOut = Carbon::parse($checkOutRecord->checktime)->format('H:i');
 
                         // Check if late (after 07:30)
@@ -137,9 +149,14 @@ class FrontendController extends Controller
                             $stats['hadir']++;
                         }
                     } else {
-                        $status = 'Bolos';
-                        $statusClass = 'rose';
-                        $stats['bolos']++;
+                        // Only count as bolos if current time is past 16:00
+                        $currentTime = Carbon::now()->format('H:i');
+                        if ($currentTime > '16:00') {
+                            $status = 'Bolos';
+                            $statusClass = 'rose';
+                            $stats['bolos']++;
+                        }
+                        // If before 16:00, don't count as bolos yet (student might still be in school)
                     }
                 } else {
                     $stats['belum']++;
@@ -155,6 +172,11 @@ class FrontendController extends Controller
                 'checkIn' => $checkIn,
                 'checkOut' => $checkOut,
             ];
+        }
+
+        // Calculate attendance percentage (hadir + terlambat = total yang masuk dan pulang tepat waktu/terlambat)
+        if ($totalSiswa > 0) {
+            $stats['persentase'] = round((($stats['hadir'] + $stats['terlambat']) / $totalSiswa) * 100, 1);
         }
 
         // Generate monthly chart data (current year)
@@ -252,13 +274,27 @@ class FrontendController extends Controller
     public function kesiswaan(Request $request)
     {
         $kelasId = $request->get('kelas_id');
+        $tpId = $request->get('tp_id');
+        $tanggalTerlambat = $request->get('tanggal_terlambat');
 
         // Get all kelas for filter
         $kelasList = Kelas::orderBy('nm_kls')->get();
 
-        // Build pelanggaran query
-        $pelanggaranQuery = \App\Models\PdsPelanggaran::with(['student.kelas'])
-            ->orderBy('tanggal', 'desc');
+        // Get all tahun pelajaran for filter
+        $tpList = \App\Models\TahunPelajaran::orderBy('nm_tp', 'desc')->get();
+
+        // Get active TP from Settings, fallback to is_active
+        $activeTpId = \App\Models\Setting::get('active_academic_year');
+        $tpAktif = $activeTpId ? \App\Models\TahunPelajaran::find($activeTpId) : null;
+        if (!$tpAktif) {
+            $tpAktif = \App\Models\TahunPelajaran::where('is_active', true)->first();
+        }
+        if (!$tpId && $tpAktif) {
+            $tpId = $tpAktif->id;
+        }
+
+        // Build pelanggaran query - GROUP BY STUDENT
+        $pelanggaranQuery = \App\Models\PdsPelanggaran::with(['student.kelas']);
 
         if ($kelasId) {
             $pelanggaranQuery->whereHas('student', function ($q) use ($kelasId) {
@@ -266,11 +302,38 @@ class FrontendController extends Controller
             });
         }
 
-        $pelanggarans = $pelanggaranQuery->limit(10)->get();
+        if ($tpId) {
+            $pelanggaranQuery->where('tp_id', $tpId);
+        }
 
-        // Build konseling query
-        $konselingQuery = \App\Models\PdsKonseling::with(['student.kelas'])
-            ->orderBy('tanggal', 'desc');
+        // Group pelanggaran by student
+        $pelanggaranAll = $pelanggaranQuery->get();
+        $pelanggaranCollection = $pelanggaranAll->groupBy('student_id')->map(function ($items, $studentId) {
+            $student = $items->first()->student;
+            $latestStatus = $items->sortByDesc('tanggal')->first()->status ?? 'pending';
+            return [
+                'student' => $student,
+                'encrypted_id' => encrypt($studentId),
+                'total_poin' => $items->sum('poin'),
+                'jumlah' => $items->count(),
+                'latest_date' => $items->max('tanggal'),
+                'status' => $latestStatus,
+            ];
+        })->sortByDesc('jumlah')->values();
+
+        // Paginate pelanggaran
+        $pelanggaranPage = $request->get('page_pelanggaran', 1);
+        $pelanggaranPerPage = 10;
+        $pelanggaranGrouped = new LengthAwarePaginator(
+            $pelanggaranCollection->forPage($pelanggaranPage, $pelanggaranPerPage),
+            $pelanggaranCollection->count(),
+            $pelanggaranPerPage,
+            $pelanggaranPage,
+            ['path' => $request->url(), 'query' => $request->query(), 'pageName' => 'page_pelanggaran']
+        );
+
+        // Build konseling query - GROUP BY STUDENT
+        $konselingQuery = \App\Models\PdsKonseling::with(['student.kelas']);
 
         if ($kelasId) {
             $konselingQuery->whereHas('student', function ($q) use ($kelasId) {
@@ -278,22 +341,247 @@ class FrontendController extends Controller
             });
         }
 
-        $konselings = $konselingQuery->limit(10)->get();
+        if ($tpId) {
+            $konselingQuery->where('tp_id', $tpId);
+        }
 
-        // Statistics
+        // Group konseling by student
+        $konselingAll = $konselingQuery->get();
+        $konselingCollection = $konselingAll->groupBy('student_id')->map(function ($items, $studentId) {
+            $student = $items->first()->student;
+            $latestStatus = $items->sortByDesc('tanggal')->first()->status ?? 'pending';
+            return [
+                'student' => $student,
+                'encrypted_id' => encrypt($studentId),
+                'jumlah' => $items->count(),
+                'latest_date' => $items->max('tanggal'),
+                'status' => $latestStatus,
+            ];
+        })->sortByDesc('jumlah')->values();
+
+        // Paginate konseling
+        $konselingPage = $request->get('page_konseling', 1);
+        $konselingPerPage = 10;
+        $konselingGrouped = new LengthAwarePaginator(
+            $konselingCollection->forPage($konselingPage, $konselingPerPage),
+            $konselingCollection->count(),
+            $konselingPerPage,
+            $konselingPage,
+            ['path' => $request->url(), 'query' => $request->query(), 'pageName' => 'page_konseling']
+        );
+
+        // Build terlambat query - GROUP BY STUDENT
+        $terlambatQuery = \App\Models\SiswaTerlambat::with(['student.kelas']);
+
+        if ($kelasId) {
+            $terlambatQuery->whereHas('student', function ($q) use ($kelasId) {
+                $q->where('kelas_id', $kelasId);
+            });
+        }
+
+        if ($tpId) {
+            $terlambatQuery->where('tp_id', $tpId);
+        }
+
+        if ($tanggalTerlambat) {
+            $terlambatQuery->whereDate('tanggal', $tanggalTerlambat);
+        }
+
+        // Group terlambat by student
+        $terlambatAll = $terlambatQuery->get();
+        $terlambatCollection = $terlambatAll->groupBy('student_id')->map(function ($items, $studentId) {
+            $student = $items->first()->student;
+            $latestStatus = $items->sortByDesc('tanggal')->first()->status ?? 'pending';
+            return [
+                'student' => $student,
+                'encrypted_id' => encrypt($studentId),
+                'total_menit' => $items->sum('keterlambatan_menit'),
+                'jumlah' => $items->count(),
+                'latest_date' => $items->max('tanggal'),
+                'status' => $latestStatus,
+            ];
+        })->sortByDesc('jumlah')->values();
+
+        // Paginate terlambat
+        $terlambatPage = $request->get('page_terlambat', 1);
+        $terlambatPerPage = 10;
+        $terlambatGrouped = new LengthAwarePaginator(
+            $terlambatCollection->forPage($terlambatPage, $terlambatPerPage),
+            $terlambatCollection->count(),
+            $terlambatPerPage,
+            $terlambatPage,
+            ['path' => $request->url(), 'query' => $request->query(), 'pageName' => 'page_terlambat']
+        );
+
+        // Statistics (filtered by TP if selected)
+        $pelanggaranStatsQuery = \App\Models\PdsPelanggaran::query();
+        $konselingStatsQuery = \App\Models\PdsKonseling::query();
+        $terlambatStatsQuery = \App\Models\SiswaTerlambat::query();
+
+        if ($tpId) {
+            $pelanggaranStatsQuery->where('tp_id', $tpId);
+            $konselingStatsQuery->where('tp_id', $tpId);
+            $terlambatStatsQuery->where('tp_id', $tpId);
+        }
+
         $stats = [
-            'total_pelanggaran' => \App\Models\PdsPelanggaran::count(),
-            'total_konseling' => \App\Models\PdsKonseling::count(),
-            'pelanggaran_pending' => \App\Models\PdsPelanggaran::where('status', 'pending')->count(),
-            'konseling_pending' => \App\Models\PdsKonseling::where('status', 'pending')->count(),
+            'total_pelanggaran' => (clone $pelanggaranStatsQuery)->count(),
+            'total_konseling' => (clone $konselingStatsQuery)->count(),
+            'total_terlambat' => (clone $terlambatStatsQuery)->count(),
+            'pelanggaran_pending' => (clone $pelanggaranStatsQuery)->where('status', 'pending')->count(),
+            'konseling_pending' => (clone $konselingStatsQuery)->where('status', 'pending')->count(),
+            'terlambat_pending' => (clone $terlambatStatsQuery)->where('status', 'pending')->count(),
         ];
 
+        // Trend data for chart (Semester Genap: Jan - Jun)
+        $currentYear = now()->year;
+        $semesterStart = Carbon::createFromDate($currentYear, 1, 1)->startOfWeek();
+        $semesterEnd = Carbon::createFromDate($currentYear, 6, 30)->endOfWeek();
+
+        $lateTrendData = [];
+        $violationTrendData = [];
+        $counselingTrendData = [];
+
+        $weekStart = $semesterStart->copy();
+        $weekNumber = 1;
+
+        while ($weekStart->lte($semesterEnd)) {
+            $weekEnd = $weekStart->copy()->endOfWeek();
+            $monthName = $weekStart->translatedFormat('M');
+
+            // Late count for this week
+            $lateQuery = \App\Models\SiswaTerlambat::whereBetween('tanggal', [$weekStart, $weekEnd]);
+            if ($tpId) {
+                $lateQuery->where('tp_id', $tpId);
+            }
+            if ($kelasId) {
+                $lateQuery->whereHas('student', function ($q) use ($kelasId) {
+                    $q->where('kelas_id', $kelasId);
+                });
+            }
+            $lateCount = $lateQuery->count();
+
+            // Violation count for this week
+            $violationQuery = \App\Models\PdsPelanggaran::whereBetween('tanggal', [$weekStart, $weekEnd]);
+            if ($tpId) {
+                $violationQuery->where('tp_id', $tpId);
+            }
+            if ($kelasId) {
+                $violationQuery->whereHas('student', function ($q) use ($kelasId) {
+                    $q->where('kelas_id', $kelasId);
+                });
+            }
+            $violationCount = $violationQuery->count();
+
+            // Counseling count for this week
+            $counselingQuery = \App\Models\PdsKonseling::whereBetween('tanggal', [$weekStart, $weekEnd]);
+            if ($tpId) {
+                $counselingQuery->where('tp_id', $tpId);
+            }
+            if ($kelasId) {
+                $counselingQuery->whereHas('student', function ($q) use ($kelasId) {
+                    $q->where('kelas_id', $kelasId);
+                });
+            }
+            $counselingCount = $counselingQuery->count();
+
+            $lateTrendData[] = [
+                'week' => 'Minggu ' . $weekNumber,
+                'date' => $weekStart->format('d M'),
+                'count' => $lateCount,
+                'month' => $monthName,
+            ];
+
+            $violationTrendData[] = [
+                'week' => 'Minggu ' . $weekNumber,
+                'date' => $weekStart->format('d M'),
+                'count' => $violationCount,
+            ];
+
+            $counselingTrendData[] = [
+                'week' => 'Minggu ' . $weekNumber,
+                'date' => $weekStart->format('d M'),
+                'count' => $counselingCount,
+            ];
+
+            $weekStart->addWeek();
+            $weekNumber++;
+        }
+
         return view('frontend.kesiswaan', compact(
-            'pelanggarans',
-            'konselings',
+            'pelanggaranGrouped',
+            'konselingGrouped',
+            'terlambatGrouped',
             'kelasList',
             'kelasId',
-            'stats'
+            'tpList',
+            'tpId',
+            'tanggalTerlambat',
+            'stats',
+            'lateTrendData',
+            'violationTrendData',
+            'counselingTrendData'
         ));
+    }
+
+    /**
+     * Display pelanggaran detail for a specific student.
+     */
+    public function kesiswaanPelanggaranDetail($encryptedId)
+    {
+        try {
+            $studentId = decrypt($encryptedId);
+        } catch (\Exception $e) {
+            abort(404, 'Data tidak ditemukan');
+        }
+
+        $student = Student::with('kelas')->findOrFail($studentId);
+        $pelanggarans = \App\Models\PdsPelanggaran::where('student_id', $studentId)
+            ->orderBy('tanggal', 'desc')
+            ->get();
+
+        $totalPoin = $pelanggarans->sum('poin');
+
+        return view('frontend.kesiswaan.pelanggaran-detail', compact('student', 'pelanggarans', 'totalPoin', 'encryptedId'));
+    }
+
+    /**
+     * Display konseling detail for a specific student.
+     */
+    public function kesiswaanKonselingDetail($encryptedId)
+    {
+        try {
+            $studentId = decrypt($encryptedId);
+        } catch (\Exception $e) {
+            abort(404, 'Data tidak ditemukan');
+        }
+
+        $student = Student::with('kelas')->findOrFail($studentId);
+        $konselings = \App\Models\PdsKonseling::where('student_id', $studentId)
+            ->orderBy('tanggal', 'desc')
+            ->get();
+
+        return view('frontend.kesiswaan.konseling-detail', compact('student', 'konselings', 'encryptedId'));
+    }
+
+    /**
+     * Display terlambat detail for a specific student.
+     */
+    public function kesiswaanTerlambatDetail($encryptedId)
+    {
+        try {
+            $studentId = decrypt($encryptedId);
+        } catch (\Exception $e) {
+            abort(404, 'Data tidak ditemukan');
+        }
+
+        $student = Student::with('kelas')->findOrFail($studentId);
+        $terlambats = \App\Models\SiswaTerlambat::where('student_id', $studentId)
+            ->orderBy('tanggal', 'desc')
+            ->get();
+
+        $totalMenit = $terlambats->sum('keterlambatan_menit');
+
+        return view('frontend.kesiswaan.terlambat-detail', compact('student', 'terlambats', 'totalMenit', 'encryptedId'));
     }
 }

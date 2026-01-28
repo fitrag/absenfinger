@@ -78,12 +78,39 @@
         </header>
 
         <!-- Page Content -->
-        <main class="flex-1 p-4 sm:p-6 max-w-4xl mx-auto w-full">
+        <main class="flex-1 p-4 sm:p-6 max-w-4xl mx-auto w-full pb-24">
             @yield('content')
         </main>
 
+        <!-- Bottom Navigation -->
+        <nav class="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t border-slate-800/50 z-30">
+            <div class="max-w-4xl mx-auto px-4">
+                <div class="flex items-center justify-around h-16">
+                    <!-- PKL Menu -->
+                    <a href="{{ route('siswa.pkl.dashboard') }}"
+                        class="flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors {{ request()->routeIs('siswa.pkl.*') ? 'text-blue-400' : 'text-slate-400 hover:text-white' }}">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        <span class="text-xs font-medium">PKL</span>
+                    </a>
+
+                    <!-- Pelanggaran Menu -->
+                    <a href="{{ route('siswa.pelanggaran.index') }}"
+                        class="flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors {{ request()->routeIs('siswa.pelanggaran.*') ? 'text-rose-400' : 'text-slate-400 hover:text-white' }}">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <span class="text-xs font-medium">Pelanggaran</span>
+                    </a>
+                </div>
+            </div>
+        </nav>
+
         <!-- Footer -->
-        <footer class="border-t border-slate-800/50 px-4 sm:px-6 py-4">
+        <footer class="border-t border-slate-800/50 px-4 sm:px-6 py-4 hidden sm:block">
             <p class="text-center text-sm text-slate-500">
                 &copy; {{ date('Y') }} AbsenFinger. All rights reserved.
             </p>

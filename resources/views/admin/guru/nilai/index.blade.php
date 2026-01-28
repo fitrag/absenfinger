@@ -126,7 +126,7 @@
                                         PDF
                                     </a>
                                     <button
-                                        @click="openAddModalWithGroup({{ $group['mapel']->id ?? 'null' }}, {{ $group['kelas']->id ?? 'null' }})"
+                                        @click="openAddModalWithGroup({{ $group['mapel']->id ?? 'null' }}, {{ $group['kelas']->id ?? 'null' }}, {{ json_encode(collect($group['items'])->pluck('harian_ke')->toArray()) }})"
                                         class="inline-flex items-center gap-1 px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500/30 text-xs font-medium cursor-pointer">
                                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -154,7 +154,17 @@
                                     @foreach($group['items'] as $idx => $nilai)
                                         <tr class="hover:bg-slate-800/30 transition-colors">
                                             <td class="px-4 py-2 text-sm text-slate-400">{{ $idx + 1 }}</td>
-                                            <td class="px-4 py-2 text-sm text-slate-300 font-medium">Harian Ke-{{ $nilai->harian_ke }}
+                                            <td class="px-4 py-2">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-sm text-slate-300 font-medium">Harian
+                                                        Ke-{{ $nilai->harian_ke }}</span>
+                                                    @if($nilai->status === 'draft')
+                                                        <span
+                                                            class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                                                            Draft
+                                                        </span>
+                                                    @endif
+                                                </div>
                                             </td>
                                             <td class="px-4 py-2 text-right">
                                                 <div class="flex items-center justify-end gap-2">
@@ -392,10 +402,18 @@
                                 <select name="harian_ke" x-model="formData.harian_ke"
                                     class="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white focus:border-blue-500">
                                     <option value="">-- Pilih Harian Ke --</option>
-                                    @for ($i = 1; $i <= 10; $i++)
-                                        <option value="{{ $i }}">{{ $i }}</option>
-                                    @endfor
+                                    <template x-for="i in 10" :key="i">
+                                        <option :value="i" x-show="!usedHarianKe.includes(i)" x-text="i"></option>
+                                    </template>
                                 </select>
+                            </div>
+
+                            <!-- Keterangan -->
+                            <div>
+                                <label class="block text-sm font-medium text-slate-300 mb-1">Keterangan</label>
+                                <textarea name="keterangan" x-model="formData.keterangan" rows="2"
+                                    placeholder="Contoh: Ulangan Harian Bab 1, Tugas Mandiri, dll"
+                                    class="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white focus:border-blue-500 placeholder-slate-500 resize-none"></textarea>
                             </div>
 
                             <!-- Input Nilai Siswa -->
@@ -460,10 +478,16 @@
                                 </div>
                             </div>
 
+                            <!-- Hidden status input -->
+                            <input type="hidden" name="status" x-model="formData.status" value="final">
+
                             <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
                                 <button type="button" @click="showAddModal = false"
                                     class="px-4 py-2 text-slate-400 hover:text-white cursor-pointer">Batal</button>
-                                <button type="submit"
+                                <button type="submit" @click="formData.status = 'draft'"
+                                    class="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-xl cursor-pointer transition-colors">Simpan
+                                    sebagai Draft</button>
+                                <button type="submit" @click="formData.status = 'final'"
                                     class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl cursor-pointer">Simpan</button>
                             </div>
                         </div>
@@ -556,6 +580,14 @@
                                 </select>
                             </div>
 
+                            <!-- Keterangan -->
+                            <div>
+                                <label class="block text-sm font-medium text-slate-300 mb-1">Keterangan</label>
+                                <textarea name="keterangan" x-model="formData.keterangan" rows="2"
+                                    placeholder="Contoh: Ulangan Harian Bab 1, Tugas Mandiri, dll"
+                                    class="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white focus:border-blue-500 placeholder-slate-500 resize-none"></textarea>
+                            </div>
+
                             <!-- Input Nilai Siswa -->
                             <div>
                                 <label class="block text-sm font-medium text-slate-300 mb-2">Input Nilai Siswa</label>
@@ -609,10 +641,16 @@
                                 </div>
                             </div>
 
+                            <!-- Hidden status input -->
+                            <input type="hidden" name="status" x-model="formData.status" value="final">
+
                             <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
                                 <button type="button" @click="showEditModal = false"
                                     class="px-4 py-2 text-slate-400 hover:text-white cursor-pointer">Batal</button>
-                                <button type="submit"
+                                <button type="submit" @click="formData.status = 'draft'"
+                                    class="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-xl cursor-pointer transition-colors">Simpan
+                                    sebagai Draft</button>
+                                <button type="submit" @click="formData.status = 'final'"
                                     class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl cursor-pointer">Update</button>
                             </div>
                         </div>
@@ -651,6 +689,7 @@
                 editId: null,
                 students: [],
                 loadingStudents: false,
+                usedHarianKe: [],
 
                 // For Detail Modal
                 detailData: {
@@ -664,10 +703,12 @@
 
                 formData: {
                     tp_id: '{{ $tpId ?? $activeTp->id ?? "" }}',
-                    semester: '{{ $semester ?? "" }}',
+                    semester: '{{ $activeSemester ?? "Ganjil" }}',
                     kelas_id: '',
                     mapel_id: '',
-                    harian_ke: ''
+                    harian_ke: '',
+                    keterangan: '',
+                    status: 'final'
                 },
 
                 async loadStudents(kelasId, nilaiId = null) {
@@ -695,18 +736,22 @@
 
                 openAddModal() {
                     this.students = [];
+                    this.usedHarianKe = [];
                     this.formData = {
                         tp_id: '{{ $tpId ?? $activeTp->id ?? "" }}',
-                        semester: '{{ $semester ?? "" }}',
+                        semester: '{{ $activeSemester ?? "Ganjil" }}',
                         kelas_id: '',
                         mapel_id: '',
-                        harian_ke: ''
+                        harian_ke: '',
+                        keterangan: '',
+                        status: 'final'
                     };
                     this.showAddModal = true;
                 },
 
-                openAddModalWithGroup(mapelId, kelasId) {
+                openAddModalWithGroup(mapelId, kelasId, usedHarianKeList = []) {
                     this.openAddModal();
+                    this.usedHarianKe = usedHarianKeList;
                     if (mapelId) this.formData.mapel_id = mapelId;
                     if (kelasId) {
                         this.formData.kelas_id = kelasId;
@@ -722,7 +767,8 @@
                         semester: semester,
                         kelas_id: kelasId,
                         mapel_id: mapelId,
-                        harian_ke: harianKe
+                        harian_ke: harianKe,
+                        status: 'final'
                     };
                     this.showEditModal = true;
                     if (kelasId) {

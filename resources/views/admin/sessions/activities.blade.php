@@ -44,7 +44,7 @@
                             <p class="text-lg font-bold text-white">{{ $user->name }}</p>
                             <p class="text-sm text-slate-400">{{ $user->username }}</p>
                             <span class="inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium
-                                    {{ $user->level === 'admin' ? 'bg-purple-500/20 text-purple-400' :
+                                            {{ $user->level === 'admin' ? 'bg-purple-500/20 text-purple-400' :
         ($user->level === 'guru' ? 'bg-blue-500/20 text-blue-400' :
             'bg-slate-500/20 text-slate-400') }}">
                                 {{ ucfirst($user->level) }}
@@ -127,7 +127,7 @@
                                                             <!-- Timeline dot -->
                                                             <div
                                                                 class="absolute left-2.5 w-3 h-3 rounded-full 
-                                                                            {{ $activity->action === 'login' ? 'bg-emerald-500' :
+                                                                                                                                    {{ $activity->action === 'login' ? 'bg-emerald-500' :
                                         ($activity->action === 'logout' ? 'bg-red-500' :
                                             ($activity->action === 'session_kicked' ? 'bg-amber-500' : 'bg-blue-500')) }}">
                                                             </div>
@@ -137,7 +137,7 @@
                                                                     <div>
                                                                         <span
                                                                             class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
-                                                                                        {{ $activity->action === 'login' ? 'bg-emerald-500/20 text-emerald-400' :
+                                                                                                                                                {{ $activity->action === 'login' ? 'bg-emerald-500/20 text-emerald-400' :
                                         ($activity->action === 'logout' ? 'bg-red-500/20 text-red-400' :
                                             ($activity->action === 'session_kicked' ? 'bg-amber-500/20 text-amber-400' : 'bg-blue-500/20 text-blue-400')) }}">
                                                                             {{ ucfirst(str_replace('_', ' ', $activity->action)) }}

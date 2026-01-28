@@ -239,6 +239,11 @@ class DudiController extends Controller
         header('Content-Disposition: attachment;filename="' . $filename . '"');
         header('Cache-Control: max-age=0');
 
+        // Clear any output buffers to prevent file corruption
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+
         $writer->save('php://output');
         exit;
     }

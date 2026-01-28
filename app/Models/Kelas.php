@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Kelas extends Model
 {
@@ -12,4 +13,12 @@ class Kelas extends Model
         'nm_kls',
         'alias',
     ];
+
+    /**
+     * Get students in this class.
+     */
+    public function students(): HasMany
+    {
+        return $this->hasMany(Student::class, 'kelas_id');
+    }
 }

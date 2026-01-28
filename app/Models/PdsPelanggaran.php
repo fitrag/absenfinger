@@ -20,7 +20,11 @@ class PdsPelanggaran extends Model
         'deskripsi',
         'tindakan',
         'keterangan',
+        'foto_bukti',
+        'ttd_siswa',
         'status',
+        'tp_id',
+        'semester',
         'created_by',
     ];
 

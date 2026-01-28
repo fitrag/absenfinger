@@ -31,7 +31,7 @@
                         <span class="w-2 h-6 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]"></span>
                         <h4 class="font-semibold text-white">Soft Skills</h4>
                     </div>
-                    <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="p-5 grid grid-cols-1 gap-4">
                         @foreach($kompSoft as $komp)
                             <div>
                                 <label
@@ -53,7 +53,7 @@
                         <span class="w-2 h-6 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.3)]"></span>
                         <h4 class="font-semibold text-white">Hard Skills</h4>
                     </div>
-                    <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="p-5 grid grid-cols-1 gap-4">
                         @foreach($kompHard as $komp)
                             <div>
                                 <label
@@ -75,7 +75,7 @@
                         <span class="w-2 h-6 rounded-full bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.3)]"></span>
                         <h4 class="font-semibold text-white">Kewirausahaan</h4>
                     </div>
-                    <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="p-5 grid grid-cols-1 gap-4">
                         @foreach($kompWirausaha as $komp)
                             <div>
                                 <label

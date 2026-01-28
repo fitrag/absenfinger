@@ -21,6 +21,8 @@ class SiswaTerlambat extends Model
         'alasan',
         'keterangan',
         'status',
+        'tp_id',
+        'semester',
         'created_by',
     ];
 
